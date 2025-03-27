@@ -23,8 +23,6 @@ if ($row['session_token'] !== $_SESSION['session_token']) {
     exit();
 }
 ?>
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
