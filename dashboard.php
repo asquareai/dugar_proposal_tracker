@@ -144,7 +144,7 @@ if ($row['session_token'] !== $_SESSION['session_token']) {
 
         /* Content */
         .content {
-            margin-left: 260px;
+            margin-left: 250px;
             padding: 20px;
             transition: margin-left 0.3s ease-in-out;
             
@@ -273,6 +273,7 @@ if ($row['session_token'] !== $_SESSION['session_token']) {
         <div class="content" id="content" >
             <iframe id="contentFrame" class="frame-set" src="proposal.php" frameborder="0" width="100%" height="100%"></iframe>
         </div>
+        <span style="position:fixed;bottom:4px;left:calc(100% - 220px);font-size:0.8em;">Developed by www.asquareai.com</span>
 
 
     <script>

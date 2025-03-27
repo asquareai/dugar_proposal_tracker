@@ -123,14 +123,14 @@ $result = mysqli_query($conn, $query);
     /* Compact table rows */
     .table th, .table td {
         padding: 3px 6px; /* Further reduce padding */
-        font-size: 11px;  /* Decrease font size */
+        font-size: 14px;  /* Decrease font size */
         vertical-align: middle; /* Align text properly */
     }
 
     /* Reduce button height */
     .btn-sm {
         padding: 1px 6px; /* Adjust padding */
-        font-size: 10px;  /* Reduce font size */
+        font-size: 12px;  /* Reduce font size */
         line-height: 1;   /* Adjust line height */
     }
     /* Table border styling */
@@ -162,12 +162,12 @@ $result = mysqli_query($conn, $query);
     @media (min-width: 1024px) {
         .table th, .table td {
             padding: 2px 5px;
-            font-size: 10px;
+            font-size: 12px;
         }
         
         .btn-sm {
             padding: 1px 5px;
-            font-size: 9px;
+            font-size: 12px;
         }
     }
 </style>
