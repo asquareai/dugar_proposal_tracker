@@ -1,0 +1,60 @@
+:root {
+    --primary-color: #2D568F;
+}
+/* Apply Google Font */
+  body, h3, input, button {
+    font-family: 'Poppins', sans-serif;
+    font-weight: 300; /* Thin font */
+}
+
+.form-control {
+    border-radius: 5px; /* Add smooth corners */
+    padding: 10px; /* Better spacing */
+    border:1px solid rgba(0,0,0,.5);
+}
+
+.input-group .form-control {
+    border-radius: 0px;
+}
+
+
+.input-group-text {
+    background: transparent;
+    border-right: none;
+}
+
+ .loader-container {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+    .loader {
+        border: 5px solid #f3f3f3;
+        border-top: 5px solid #007bff;
+        border-radius: 50%;
+        width: 50px;
+        height: 50px;
+        animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .alert-container {
+        position: fixed;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 90%;
+        max-width: 400px;
+        z-index: 1000;
+    }
