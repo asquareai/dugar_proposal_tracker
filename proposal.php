@@ -28,29 +28,8 @@ $result = mysqli_query($conn, $query);
 
 <div class="container-fluid mt-4"> <!-- Full width -->
     <div class="d-flex flex-wrap gap-2 mb-3">
-        <button class="btn btn-primary" onclick="toggleForm()">Create New Proposal</button>
+        <button class="btn btn-primary" onclick="proposalForm()">Create New Proposal</button>
     </div>
-
-    <!-- Proposal Form (Initially Hidden) -->
-    <div id="proposalForm" class="card p-3 mb-4" style="display: none;">
-        <h4>Create New Proposal</h4>
-        <form method="POST">
-            <div class="mb-2">
-                <label>Title</label>
-                <input type="text" class="form-control" name="title" required>
-            </div>
-            <div class="mb-2">
-                <label>Client Name</label>
-                <input type="text" class="form-control" name="client_name" required>
-            </div>
-            <div class="mb-2">
-                <label>Amount</label>
-                <input type="number" class="form-control" name="amount" required>
-            </div>
-            <button type="submit" name="create_proposal" class="btn btn-success">Save Proposal</button>
-        </form>
-    </div>
-
     <?php if (mysqli_num_rows($result) > 0) { ?>
         <div class="table-responsive w-100" style="max-width: 100%;">  <!-- Full width -->
             <table id="proposalTable" class="table table-hover table-striped table-bordered nowrap" style="width:100%">
@@ -106,9 +85,8 @@ $result = mysqli_query($conn, $query);
         });
     });
 
-    function toggleForm() {
-        let form = document.getElementById('proposalForm');
-        form.style.display = (form.style.display === 'none' || form.style.display === '') ? 'block' : 'none';
+    function proposalForm() {
+        document.location.href="proposal-form.php";
     }
 </script>
 

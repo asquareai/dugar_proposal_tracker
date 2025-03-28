@@ -83,7 +83,10 @@
     .table th
     {
         border: 1px solidrgb(106, 113, 120)!important; /* Slightly darker gray for cell borders */
-        background: linear-gradient(to right, rgba(45, 86, 143, 0.8), rgba(255, 255, 255, 0.2)) !important;
+        background: linear-gradient(to bottom,  #499bea 0%,#207ce5 100%); /* W3C, IE10+, FF16+, Chrome26+, Opera12+, Safari7+ */
+        padding:5px!important;
+        color:#fff;
+
 
     }
     /* Add subtle shadow for better appearance */
