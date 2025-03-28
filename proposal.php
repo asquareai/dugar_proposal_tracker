@@ -21,6 +21,10 @@ $result = mysqli_query($conn, $query);
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css">
 <link rel="stylesheet" href="https://cdn.datatables.net/responsive/2.4.1/css/responsive.bootstrap5.min.css">
+<link rel="stylesheet" href="assets/css/proposal.css">
+<link rel="stylesheet" href="assets/css/global.css">
+<link rel="stylesheet" href="assets/css/loader.css">
+
 
 <div class="container-fluid mt-4"> <!-- Full width -->
     <div class="d-flex flex-wrap gap-2 mb-3">
@@ -50,7 +54,7 @@ $result = mysqli_query($conn, $query);
     <?php if (mysqli_num_rows($result) > 0) { ?>
         <div class="table-responsive w-100" style="max-width: 100%;">  <!-- Full width -->
             <table id="proposalTable" class="table table-hover table-striped table-bordered nowrap" style="width:100%">
-                <thead class="table-dark">
+                <thead class="table-row-header">
                     <tr>
                         <th>Title</th>
                         <th>Client</th>
@@ -108,66 +112,3 @@ $result = mysqli_query($conn, $query);
     }
 </script>
 
-<style>
-    /* Reduce font size and padding for overall content */
-    body {
-        font-size: 12px; /* Slightly smaller text */
-    }
-
-    /* Ensure full-width table on larger screens */
-    .container {
-        max-width: 100%;
-        padding: 8px;
-    }
-
-    /* Compact table rows */
-    .table th, .table td {
-        padding: 3px 6px; /* Further reduce padding */
-        font-size: 14px;  /* Decrease font size */
-        vertical-align: middle; /* Align text properly */
-    }
-
-    /* Reduce button height */
-    .btn-sm {
-        padding: 1px 6px; /* Adjust padding */
-        font-size: 12px;  /* Reduce font size */
-        line-height: 1;   /* Adjust line height */
-    }
-    /* Table border styling */
-    .table {
-        border: 1px solidrgb(77, 80, 84); /* Light gray border */
-    }
-
-    .table th, .table td {
-        border: 1px solidrgb(106, 113, 120)!important; /* Slightly darker gray for cell borders */
-    }
-
-    /* Add subtle shadow for better appearance */
-    .table-bordered {
-        border-radius: 5px;
-        overflow: hidden;
-        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
-    }
-
-    /* Alternate row styles */
-    .table tbody tr:nth-child(odd) td {
-        background-color: rgb(207, 230, 255) !important; /* Light gray */
-    }
-
-    .table tbody tr:nth-child(even) td {
-        background-color: #ffffff !important; /* White */
-    }
-
-    /* Further reduce row height and spacing on desktops */
-    @media (min-width: 1024px) {
-        .table th, .table td {
-            padding: 2px 5px;
-            font-size: 12px;
-        }
-        
-        .btn-sm {
-            padding: 1px 5px;
-            font-size: 12px;
-        }
-    }
-</style>

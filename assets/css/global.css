@@ -58,3 +58,59 @@
         max-width: 400px;
         z-index: 1000;
     }
+
+    /* Compact table rows */
+    .table th, .table td {
+        padding: 3px 6px; /* Further reduce padding */
+        font-size: 14px;  /* Decrease font size */
+        vertical-align: middle; /* Align text properly */
+    }
+
+    /* Reduce button height */
+    .btn-sm {
+        padding: 1px 6px; /* Adjust padding */
+        font-size: 12px;  /* Reduce font size */
+        line-height: 1;   /* Adjust line height */
+    }
+    /* Table border styling */
+    .table {
+        border: 1px solidrgb(77, 80, 84); /* Light gray border */
+    }
+
+    table td {
+        border: 1px solidrgb(106, 113, 120)!important; /* Slightly darker gray for cell borders */
+    }
+    .table th
+    {
+        border: 1px solidrgb(106, 113, 120)!important; /* Slightly darker gray for cell borders */
+        background: linear-gradient(to right, rgba(45, 86, 143, 0.8), rgba(255, 255, 255, 0.2)) !important;
+
+    }
+    /* Add subtle shadow for better appearance */
+    .table-bordered {
+        border-radius: 5px;
+        overflow: hidden;
+        box-shadow: 0px 2px 5px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Alternate row styles */
+    .table tbody tr:nth-child(odd) td {
+        background-color: rgb(207, 230, 255) !important; /* Light gray */
+    }
+
+    .table tbody tr:nth-child(even) td {
+        background-color: #ffffff !important; /* White */
+    }
+
+    /* Further reduce row height and spacing on desktops */
+    @media (min-width: 1024px) {
+        .table th, .table td {
+            padding: 2px 5px;
+            font-size: 12px;
+        }
+        
+        .btn-sm {
+            padding: 1px 5px;
+            font-size: 12px;
+        }
+    }

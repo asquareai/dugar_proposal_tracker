@@ -1,0 +1,11 @@
+    /* Reduce font size and padding for overall content */
+    body {
+        font-size: 12px; /* Slightly smaller text */
+    }
+
+    /* Ensure full-width table on larger screens */
+    .container {
+        max-width: 100%;
+        padding: 8px;
+    }
+

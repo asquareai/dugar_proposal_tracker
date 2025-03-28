@@ -29,6 +29,7 @@ if ($row['session_token'] !== $_SESSION['session_token']) {
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dashboard</title>
+    <link rel="icon" type="image/x-icon" href="assets/images/favicon.ico">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@100&display=swap" rel="stylesheet">
@@ -273,7 +274,8 @@ if ($row['session_token'] !== $_SESSION['session_token']) {
         <div class="content" id="content" >
             <iframe id="contentFrame" class="frame-set" src="proposal.php" frameborder="0" width="100%" height="100%"></iframe>
         </div>
-        <span style="position:fixed;bottom:4px;left:calc(100% - 220px);font-size:0.8em;">Developed by www.asquareai.com</span>
+        <span style="position:fixed;bottom:4px;left:calc(100% - 220px);font-size:0.8em;">© Copyright www.asquareai.com
+        </span>
 
 
     <script>
