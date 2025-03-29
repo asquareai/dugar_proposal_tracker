@@ -1,16 +1,5 @@
-document insert INSERT INTO proposal_documents (proposal_id, document_type, file_path, uploaded_dt, uploaded_by, category_id) 
-                        VALUES ('52', 'doctype', 'uploads/bglogo_trp (2)_1743256833_67e7fd01e3c79.png', NOW(), '7', '1')document insert INSERT INTO proposal_documents (proposal_id, document_type, file_path, uploaded_at, created_by, category_id) 
-                        VALUES ('53', 'doctype', 'uploads/bglogo_trp (2)_1743257001_67e7fda91eb17.png', NOW(), '7', '1')document insert INSERT INTO proposal_documents (proposal_id, document_type, file_path, uploaded_at, created_by, category_id) 
-                        VALUES ('53', 'doctype', 'uploads/New Project (2)_1743257001_67e7fda926020.png', NOW(), '7', '1')document insert INSERT INTO proposal_documents (proposal_id, document_type, file_path, uploaded_at, created_by, category_id) 
-                        VALUES ('53', 'doctype', 'uploads/10th_Tamil_Text_www.tntextbooks.in_1743257001_67e7fda92d636.pdf', NOW(), '7', '1')2025-03-29 15:17:11 - document insert: INSERT INTO proposal_documents (proposal_id, document_type, file_path, uploaded_at, created_by, category_id) 
-                                        VALUES ('54', 'pdf', 'uploads/10th Eng Qno 7 to 14 complete study material just 22 pages_1743257831_67e800e72f515.pdf', NOW(), '7', '1')
-2025-03-29 15:17:11 - document insert: INSERT INTO proposal_documents (proposal_id, document_type, file_path, uploaded_at, created_by, category_id) 
-                                        VALUES ('54', 'image', 'uploads/pasted-image-1743257800914_1743257831_67e800e736992.png', NOW(), '7', '1')
-2025-03-29 15:17:11 - document insert: INSERT INTO proposal_documents (proposal_id, document_type, file_path, uploaded_at, created_by, category_id) 
-                                        VALUES ('54', 'image', 'uploads/New Project (2)_1743257831_67e800e73d80b.png', NOW(), '7', '1')
-2025-03-29 15:17:11 - document insert: INSERT INTO proposal_documents (proposal_id, document_type, file_path, uploaded_at, created_by, category_id) 
-                                        VALUES ('54', 'image', 'uploads/WhatsApp Image 2025-03-28 at 10.37.11 AM_1743257831_67e800e7443f6.jpeg', NOW(), '7', '2')
-2025-03-29 15:17:11 - document insert: INSERT INTO proposal_documents (proposal_id, document_type, file_path, uploaded_at, created_by, category_id) 
-                                        VALUES ('54', 'image', 'uploads/bglogo_trp (2)_1743257831_67e800e74b116.png', NOW(), '7', '3')
-2025-03-29 15:17:11 - document insert: INSERT INTO proposal_documents (proposal_id, document_type, file_path, uploaded_at, created_by, category_id) 
-                                        VALUES ('54', 'image', 'uploads/pasted-image-1743257825419_1743257831_67e800e751f19.png', NOW(), '7', '3')
+2025-03-29 17:15:44 - action   Venkat
+2025-03-29 17:16:19 - action   
+2025-03-29 17:17:58 - action   
+2025-03-29 17:20:14 - action   
+2025-03-29 17:21:09 - action  submit submit

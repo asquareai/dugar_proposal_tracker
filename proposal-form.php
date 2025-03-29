@@ -1,7 +1,16 @@
 <?php
 include 'config.php'; // Database connection
 session_start(); // Start the session
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
+if ($_SERVER["REQUEST_METHOD"] === "POST") {
+   
+    $action = trim($_POST['action']);  // Trim to remove extra spaces
+    if ($action === 'draft') {
+        $proposal_status = 1;
+    } elseif ($action === 'submit') {
+        $proposal_status = 2;
+    }
+
+    file_put_contents("log.txt", date("Y-m-d H:i:s") . " - action  $action " .  $_POST['action'] . "\n", FILE_APPEND);
     // Sanitize input values
     $borrower_name = mysqli_real_escape_string($conn, $_POST['borrower_name']);
     $initials = mysqli_real_escape_string($conn, $_POST['initials']);
@@ -25,7 +34,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $sql = "INSERT INTO proposals 
             (borrower_name, initials, mobile_number, email, city, vehicle_name, model, loan_amount,  co_applicant_name, co_applicant_mobile, co_applicant_relationship, created_by, status)
             VALUES 
-            ('$borrower_name', '$initials', '$mobile_number', '$email_id', '$city', '$vehicle_name', '$model', '$loan_amount','$co_name', '$co_mobile', '$co_relationship', '$created_by', 1)";
+            ('$borrower_name', '$initials', '$mobile_number', '$email_id', '$city', '$vehicle_name', '$model', '$loan_amount','$co_name', '$co_mobile', '$co_relationship', '$created_by','$proposal_status')";
 
     if (mysqli_query($conn, $sql)) {
         $proposal_id = mysqli_insert_id($conn); // Get last inserted proposal ID
@@ -51,7 +60,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                                         VALUES ('$proposal_id', '$document_type', '$uploadFile', NOW(), '$created_by', '$category')";
 
                             // Log query to a file
-                            file_put_contents("log.txt", date("Y-m-d H:i:s") . " - document insert: $doc_sql\n", FILE_APPEND);
+                            //file_put_contents("log.txt", date("Y-m-d H:i:s") . " - document insert: $doc_sql\n", FILE_APPEND);
 
                             // Execute SQL
                             if (!mysqli_query($conn, $doc_sql)) {
@@ -107,6 +116,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <!-- Bootstrap JS Bundle (including Popper.js) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
     <style>
        .container {
@@ -136,32 +146,114 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             width: 60%;
         }
         .comments-box {
-            display: flex;
-            flex-direction: column;
-            border: 1px solid #ddd;
-            padding: 10px;
-            border-radius: 5px;
-            background: #fff;
-            max-height: 300px; /* Adjust height as needed */
+            width: 100%;
+            max-width: 500px;
+            background: #ffffff;
+            border-radius: 10px;
+            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+            padding: 15px;
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
         }
 
         .comments-list {
-            flex-grow: 1;
-            overflow-y: auto; /* Only previous comments are scrollable */
-            max-height: 200px;
-            padding-right: 5px;
+            max-height: 450px;
+            overflow-y: auto;
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
         }
 
         .comment-entry {
-            border-bottom: 1px solid #ddd;
-            padding-bottom: 5px;
+            background: #f9f9f9;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            position: relative;
+            display: flex;
+            align-items: flex-start;
+        }
+
+        .comment-icon {
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            color: #007bff;
+            font-size: 16px;
+            margin-right: 10px;
+        }
+
+        .comment-content {
+            flex: 1;
+        }
+
+        .comment-entry small {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: #555;
+            font-size: 12px;
             margin-bottom: 5px;
         }
 
-        /* New comment section remains at the bottom */
-        .new-comment {
-            margin-top: 10px;
+        .comment-time {
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            color: #888;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
         }
+
+        .comment-time::before {
+            content: "\f017"; /* Clock icon */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            margin-right: 5px;
+        }
+
+        .comment-user::before {
+            content: "\f007"; /* User icon */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            color: #007bff;
+            margin-right: 5px;
+        }
+
+        .comment-entry p {
+            margin: 5px 0 0;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .new-comment {
+            display: flex;
+            flex-direction: column; /* Ensures label and textarea are on separate lines */
+            margin-top: 10px;
+            padding-top: 10px;
+        }
+
+        .comment-label {
+            font-size: 14px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px; /* Adds spacing between label and textarea */
+        }
+
+        .new-comment textarea {
+            height: 100px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            padding: 10px;
+            resize: none;
+            font-size: 14px;
+            color: #333;
+            background: #f8f9fa;
+            width: 100%;
+        }
+
+        .new-comment textarea::placeholder {
+            color: #aaa;
+        }
+
         .close-fixed {
             position: fixed;
             top: 10px;
@@ -175,118 +267,167 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             z-index: 9999;
         }
        /* Container to display cards in a row */
-.category-container {
-    display: flex;
-    overflow-x: auto;
-    width: 100%;
-    padding: 10px 0; /* Padding for top and bottom */
-}
-
-/* Style for individual category cards */
-.category-card {
-    flex: 0 0 auto;  /* Ensures the card does not grow or shrink */
-    border: 1px solid #e0e0e0; /* Light border for a modern look */
-    margin: 10px;
-    width: 100%;
-    box-sizing: border-box; /* Include padding and borders in the width */
-    border-radius: 8px; /* Rounded corners for a modern touch */
-    background-color: #ffffff; /* White background */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Soft shadow for elevation effect */
-    transition: all 0.3s ease; /* Smooth transition for hover effects */
-}
-
-/* Hover effect for card */
-.category-card:hover {
-    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); /* Increase shadow on hover */
-    transform: translateY(-5px); /* Slight lift effect on hover */
-}
-
-/* Header style for category cards */
-.category-card h3 {
-    font-size: 16px; /* Smaller font for header */
-    font-weight: 600; /* Medium bold text */
-    margin-top: 0;
-    padding: 10px;
-    background-color: #f2f2f2; /* Light background for header */
-    border-radius: 6px;
-    color: #333; /* Dark text color */
-    text-align: center; /* Center align the title */
-}
-
-/* File preview style */
-.file-preview {
-    display: inline-block;
-    margin: 10px;
-}
-
-/* Preview container styles */
-.preview-container {
-    margin-top: 15px;
-}
-
-/* Image preview style */
-.preview-container img {
-    width:200px;
-    height: auto;
-    margin: 5px;
-    border-radius: 4px; /* Rounded corners for images */
-}
-
-/* Remove button style */
-.preview-container .file-remove {
-    cursor: pointer;
-    font-size: 12px;
-    color: #ff4d4d; /* Red color for remove button */
-    margin-top: 5px;
-    display: block;
-    text-align: center;
-    padding: 5px;
-    border-radius: 4px;
-    transition: background-color 0.3s ease;
-}
-
-/* Change remove button background on hover */
-.preview-container .file-remove:hover {
-    background-color: #ffcccc; /* Light red background on hover */
-}
-
-/* PDF icon style */
-.preview-container .pdf-icon {
-    width: 80px;
-    height: 120px;
-    background: url('assets/images/pdf-icon.png') no-repeat center center;
-    background-size: cover;
-    margin: 5px;
-    border-radius: 4px; /* Rounded corners for PDF icon */
-}
- /* Modal Styles */
- #previewModal {
-        position: fixed;
-        top: 0;
-        left: 0;
+    .category-container {
+        display: flex;
+        overflow-x: auto;
         width: 100%;
-        height: 100%;
-        background-color: rgba(0, 0, 0, 0.7);
-        display: none;
-        justify-content: center;
+        padding: 10px 0; /* Padding for top and bottom */
+    }
+
+    /* Style for individual category cards */
+    .category-card {
+        flex: 0 0 auto;  /* Ensures the card does not grow or shrink */
+        border: 1px solid rgb(187, 181, 181); /* Light border for a modern look */
+        margin: 10px;
+        width: 100%;
+        box-sizing: border-box; /* Include padding and borders in the width */
+        border-radius: 2px; /* Rounded corners for a modern touch */
+        background-color: #ffffff; /* White background */
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Soft shadow for elevation effect */
+        transition: all 0.3s ease; /* Smooth transition for hover effects */
+    }
+    .category-card-container
+    {
+        padding:20px;
+    }
+    .category-card-paste-button {
         align-items: center;
-    }
-    #modalContent {
+        gap: 6px;
+        border: none;
+        background-color: rgb(138, 191, 245);
+        color: #333;
+        font-size: 14px;
+        font-weight: 500;
+        padding: 4px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        top: -42px;
+        left: calc(100% - 126px);
         position: relative;
-        background-color: white;
-        padding: 20px;
-        max-width: 90%;
-        max-height: 90%;
-        overflow: auto;
     }
-    #modalPreviewContainer img {
-        max-width: 100%;
-        max-height: 100%;
+
+    .category-card-paste-button:hover {
+        background-color:rgb(45, 255, 238);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
     }
-    #modalPreviewContainer .pdf-icon {
-        width: 100%;
+
+    .category-card-paste-button i {
+        font-size: 16px;
+    }
+
+    /* Hover effect for card */
+    .category-card:hover {
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); /* Increase shadow on hover */
+        transform: translateY(-5px); /* Slight lift effect on hover */
+    }
+
+    /* Header style for category cards */
+    .category-card h3 {
+        font-size: 16px; /* Smaller font for header */
+        font-weight: 600; /* Medium bold text */
+        margin-top: 0;
+        padding: 10px;
+        background-color: #f2f2f2; /* Light background for header */
+        border-bottom: 1px solid rgb(187, 181, 181); /* Light border for a modern look */
+        border-radius: 2px;
+        color: #333; /* Dark text color */
+        text-align: left; /* Center align the title */
+    }
+
+
+    /* File preview style */
+    .file-preview {
+        display: inline-block;
+        margin: 10px;
+    }
+
+    /* Preview container styles */
+    .preview-container {
+        margin-top: 15px;
+    }
+
+    /* Image preview style */
+    .preview-container img {
+        width:200px;
         height: auto;
+        margin: 5px;
+        border-radius: 4px; /* Rounded corners for images */
+        cursor:pointer;
     }
+
+    /* Remove button style */
+    .preview-container .file-remove {
+        cursor: pointer;
+        font-size: 12px;
+        color: #ff4d4d; /* Red color for remove button */
+        margin-top: 5px;
+        display: block;
+        text-align: left;
+        padding: 5px;
+        border-radius: 4px;
+        transition: background-color 0.3s ease;
+        width:80px;
+        cursor: pointer;
+    }
+
+    /* Change remove button background on hover */
+    .preview-container .file-remove:hover {
+        background-color: #ffcccc; /* Light red background on hover */
+    }
+
+    /* PDF icon style */
+    .preview-container .pdf-icon {
+        width: 80px;
+        height: 120px;
+        background: url('assets/images/pdf-icon.png') no-repeat center center;
+        background-size: cover;
+        margin: 5px;
+        border-radius: 4px; /* Rounded corners for PDF icon */
+        cursor: pointer;
+    }
+    /* Modal Styles */
+    #previewModal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        #modalContent {
+            position: relative;
+            background-color: white;
+            padding: 20px;
+            max-width: 90%;
+            max-height: 90%;
+            overflow: auto;
+        }
+        #modalPreviewContainer img {
+            max-width: 100%;
+            max-height: 100%;
+        }
+        #modalPreviewContainer .pdf-icon {
+            width: 100%;
+            height: auto;
+        }
+        .btn {
+            font-size: 14px;
+            font-weight: 600;
+            padding: 10px 15px;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px; /* Adds spacing between icon and text */
+            margin-bottom:20px;
+        }
+
+        .btn i {
+            font-size: 16px;
+        }
 
     </style>
 </head>
@@ -341,10 +482,6 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 <label>Loan Amount</label>
                 <input type="text" class="form-control" name="loan_amount" placeholder="Requested loan amount" required value="150000">
             </div>
-        </div>
-        
-        <!-- Right Side: Co-Applicant Details -->
-        <div class="col-md-6">
             <h5>Co-Applicant Details</h5>
             <div class="form-group">
                 <label>Name</label>
@@ -363,28 +500,74 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     <option value="sibling">Sibling</option>
                 </select>
             </div>
-
+        </div>
+        
+        <!-- Right Side: Co-Applicant Details -->
+        <div class="col-md-6">
             <!-- Comments Section -->
             <h5 class="mt-4">Comments</h5>
             <div class="comments-box">
                 <!-- Scrollable Comments List -->
                 <div class="comments-list">
                     <div class="comment-entry">
-                        <small><strong>User1</strong> - 2024-03-28 10:15 AM</small>
-                        <p>First comment text goes here...</p>
+                        <span class="comment-icon comment-user"></span>
+                        <div class="comment-content">
+                            <small>
+                                <span><strong>User1</strong></span>
+                                <span class="comment-time">2024-03-28 10:15 AM</span>
+                            </small>
+                            <p>First comment text goes here...</p>
+                        </div>
                     </div>
                     <div class="comment-entry">
-                        <small><strong>User2</strong> - 2024-03-28 10:20 AM</small>
-                        <p>Second comment text goes here...</p>
+                        <span class="comment-icon comment-user"></span>
+                        <div class="comment-content">
+                            <small>
+                                <span><strong>User2</strong></span>
+                                <span class="comment-time">2024-03-28 10:20 AM</span>
+                            </small>
+                            <p>Second comment text goes here...</p>
+                        </div>
+                    </div>
+                    <div class="comment-entry">
+                        <span class="comment-icon comment-user"></span>
+                        <div class="comment-content">
+                            <small>
+                                <span><strong>User2</strong></span>
+                                <span class="comment-time">2024-03-28 10:20 AM</span>
+                            </small>
+                            <p>Second comment text goes here...</p>
+                        </div>
+                    </div>
+                    <div class="comment-entry">
+                        <span class="comment-icon comment-user"></span>
+                        <div class="comment-content">
+                            <small>
+                                <span><strong>User2</strong></span>
+                                <span class="comment-time">2024-03-28 10:20 AM</span>
+                            </small>
+                            <p>Second comment text goes here...</p>
+                        </div>
+                    </div>
+                    <div class="comment-entry">
+                        <span class="comment-icon comment-user"></span>
+                        <div class="comment-content">
+                            <small>
+                                <span><strong>User2</strong></span>
+                                <span class="comment-time">2024-03-28 10:20 AM</span>
+                            </small>
+                            <p>Second comment text goes here...</p>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Fixed New Comment Input -->
+              <!-- Fixed New Comment Input -->
                 <div class="new-comment">
-                    <label>New Comment</label>
-                    <textarea class="form-control" name="comments" placeholder="Enter your comment" value="tested">tested</textarea>
+                    <label class="comment-label">New Comment</label>
+                    <textarea class="form-control" name="comments" placeholder="Enter your comment">tested</textarea>
                 </div>
             </div>
+
         </div>
     </div>
 
@@ -413,9 +596,17 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     </div>
 
     <!-- Submit Button -->
-    <div class="mt-4">
-        <button type="submit" class="btn btn-primary">Save & Proceed Next</button>
+    <div class="mt-4 text-end">
+        <button type="submit" value="draft" class="btn btn-outline-secondary me-2" onclick="setAction('draft')">
+            <i class="fas fa-file-alt"></i> Save as Draft
+        </button>
+        <button type="submit" value="submit" class="btn btn-success" onclick="setAction('submit')">
+            <i class="fas fa-paper-plane"></i> Save & Submit for Review
+        </button>
+        <input type="hidden" name="action" id="actionField">
     </div>
+
+
 </form>
     </div>
     <!-- Modal to display enlarged content -->
@@ -446,11 +637,24 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             const card = document.createElement('div');
             card.classList.add('category-card');
             card.id = category.id;
-
+            const cardHeaderDiv = document.createElement('div');
+            card.appendChild(cardHeaderDiv);
             const title = document.createElement('h3');
             title.textContent = category.name;
-            card.appendChild(title);
+            cardHeaderDiv.appendChild(title);
+            const pasteButton = document.createElement('span');
+            pasteButton.innerHTML = '<i class="fas fa-paste"></i> Paste Image'; // FontAwesome Icon
 
+            pasteButton.classList.add('category-card-paste-button');
+            pasteButton.onclick = function() {
+                // This is a fix: trigger paste event on the document
+                triggerPaste(category.id);
+            };
+            cardHeaderDiv.appendChild(pasteButton);
+
+            const cardContainer = document.createElement('div');
+            card.appendChild(cardContainer);
+            cardContainer.classList.add('category-card-container');
             const fileInput = document.createElement('input');
             fileInput.type = 'file';
             fileInput.accept = 'image/*,application/pdf';
@@ -458,15 +662,9 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             fileInput.addEventListener('change', function() {
                 handleFileSelect(category.id, fileInput);
             });
-            card.appendChild(fileInput);
+            cardContainer.appendChild(fileInput);
 
-            const pasteButton = document.createElement('span');
-            pasteButton.textContent = 'Paste Image';
-            pasteButton.onclick = function() {
-                // This is a fix: trigger paste event on the document
-                triggerPaste(category.id);
-            };
-            card.appendChild(pasteButton);
+           
 
             const previewContainer = document.createElement('div');
             previewContainer.classList.add('preview-container');
@@ -498,10 +696,16 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                     reader.onload = function(e) {
                         preview.src = e.target.result;
                     };
+                    preview.onclick = function() {
+                        openModal(preview.src, 'image');
+                    };
                     reader.readAsDataURL(file);
                 } else if (file.type === 'application/pdf') {
                     preview = document.createElement('div');
                     preview.classList.add('pdf-icon');
+                    preview.onclick = function() {
+                        openModal(URL.createObjectURL(file), 'pdf');
+                    };
                 }
 
                 fileDiv.appendChild(preview);
@@ -509,7 +713,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                 // Add remove button for the file
                 const removeBtn = document.createElement('div');
                 removeBtn.classList.add('file-remove');
-                removeBtn.textContent = 'Remove';
+                removeBtn.innerHTML = '<i class="fas fa-trash"></i> Removes'; // FontAwesome Icon
                 removeBtn.onclick = function() {
                     fileDiv.remove();
                     // Remove from filesToUpload object
@@ -566,7 +770,7 @@ for (const item of clipboardItems) {
 
                 const removeBtn = document.createElement("div");
                 removeBtn.classList.add("file-remove");
-                removeBtn.textContent = "Remove";
+                removeBtn.innerHTML = '<i class="fas fa-trash"></i> Removes'; // FontAwesome Icon
                 removeBtn.onclick = function () {
                     fileDiv.remove();
                     const index = filesToUpload[categoryId].indexOf(file);
@@ -611,7 +815,7 @@ console.error("Failed to read clipboard contents:", err);
         uploadForm.addEventListener('submit', function(event) {
             event.preventDefault(); // Prevent the default form submission
 
-            const formData = new FormData();
+            const formData = new FormData(uploadForm); // Capture all form fields
 
             // Add all files from all categories to FormData
             for (const category in filesToUpload) {
@@ -643,4 +847,36 @@ document.querySelector('.close-fixed').addEventListener('click', function () {
         window.location.href = 'proposal.php';
     });
    
+
+// Function to open the modal with the enlarged content
+function openModal(contentUrl, type) {
+    const modal = document.getElementById('previewModal');
+    const modalPreviewContainer = document.getElementById('modalPreviewContainer');
+    modal.style.display = 'flex';
+
+    // Clear any existing content in the modal
+    modalPreviewContainer.innerHTML = '';
+
+    if (type === 'image') {
+        const img = document.createElement('img');
+        img.src = contentUrl;
+        modalPreviewContainer.appendChild(img);
+    } else if (type === 'pdf') {
+        const pdfViewer = document.createElement('iframe');
+        pdfViewer.src = contentUrl;
+        pdfViewer.style.width = '100%';
+        pdfViewer.style.height = '500px'; // Adjust height as needed
+        modalPreviewContainer.appendChild(pdfViewer);
+    }
+}
+
+// Close the modal when the close button is clicked
+document.getElementById('closeModal').onclick = function() {
+    const modal = document.getElementById('previewModal');
+    modal.style.display = 'none';
+};
+
+function setAction(value) {
+    document.getElementById('actionField').value = value; // Set hidden input value
+}
 </script>
