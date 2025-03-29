@@ -1,6 +1,20 @@
 <?php
 include 'config.php';
 
+if (isset($_GET['status_code'])) {
+    $status_code = $_GET['status_code'];
+    $message = "Proposal submitted for review successfully!";
+    // Bootstrap alert class based on status_code
+    $alert_class = ($status_code == '1024') ? 'alert-success' : 'alert-danger';
+
+    echo '<div class="custom-alert">'; // Custom wrapper for positioning
+    echo '<div class="alert ' . $alert_class . ' alert-dismissible fade show small-alert" role="alert">';
+    echo htmlspecialchars($message); // Prevent XSS attack
+    echo '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>';
+    echo '</div>';
+    echo '</div>';
+}
+
 // Handle form submission for creating a new proposal
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_proposal'])) {
     $title = $_POST['title'];

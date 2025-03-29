@@ -8,4 +8,22 @@
         max-width: 100%;
         padding: 8px;
     }
+    .custom-alert {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 1050; /* Ensure it appears on top */
+        
+    }
+    
+    .small-alert {
+        font-size: 0.875rem; /* Smaller text */
+        padding: 5px 10px; /* Less padding */
+        width: auto; /* Adjust width dynamically */
+        display: inline-block;
+        padding:16px;
+        padding-left:50px;
+        padding-right: 50px;;
+    }
+    
 

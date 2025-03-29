@@ -1,16 +1,53 @@
 <?php
 include 'config.php'; // Database connection
 session_start(); // Start the session
+$show_alert = 0;
+
+$proposal_mode = "NEW";
+$allowed_statuses  = ['Draft'];
+// Allowed Status Names (Set dynamically based on your business logic)
+if ( $_SESSION['user_role'] === "sales")
+{
+    if($proposal_mode === "NEW")
+        $allowed_statuses = ['Draft', 'Submitted for Review']; 
+}
+else if ( $_SESSION['user_role'] === "user")
+{
+    if($proposal_mode === "EDIT")
+        $allowed_statuses = ['Under Review', 'Documents Requested', 'Sent for Approval']; 
+    else if($proposal_mode === "NEW")
+        $allowed_statuses = ['Under Review', 'Documents Requested', 'Sent for Approval']; 
+}
+// Prepare a parameterized query with placeholders
+$placeholders = implode(',', array_fill(0, count($allowed_statuses), '?'));
+
+// Construct query
+$query = "SELECT status_id, status_name FROM proposal_status_master WHERE status_name IN ($placeholders)";
+
+// Prepare the statement
+$stmt = $conn->prepare($query);
+
+// Bind parameters dynamically
+$types = str_repeat('s', count($allowed_statuses)); // 's' for string parameters
+$stmt->bind_param($types, ...$allowed_statuses);
+
+// Execute query
+$stmt->execute();
+$result = $stmt->get_result();
+
+// Fetch results
+$statuses = [];
+while ($row = $result->fetch_assoc()) {
+    $statuses[] = $row;
+}
+
+// Close statement
+$stmt->close();
+
 if ($_SERVER["REQUEST_METHOD"] === "POST") {
    
-    $action = trim($_POST['action']);  // Trim to remove extra spaces
-    if ($action === 'draft') {
-        $proposal_status = 1;
-    } elseif ($action === 'submit') {
-        $proposal_status = 2;
-    }
-
-    file_put_contents("log.txt", date("Y-m-d H:i:s") . " - action  $action " .  $_POST['action'] . "\n", FILE_APPEND);
+    $proposal_status = isset($_POST['proposal_status']) ? (int)$_POST['proposal_status'] : null;
+    
     // Sanitize input values
     $borrower_name = mysqli_real_escape_string($conn, $_POST['borrower_name']);
     $initials = mysqli_real_escape_string($conn, $_POST['initials']);
@@ -29,7 +66,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     // Capture the agent (user who created it)
     $created_by = $_SESSION['user_id']; // Assuming user is logged in
-
+    
     // Insert into proposal table
     $sql = "INSERT INTO proposals 
             (borrower_name, initials, mobile_number, email, city, vehicle_name, model, loan_amount,  co_applicant_name, co_applicant_mobile, co_applicant_relationship, created_by, status)
@@ -37,7 +74,9 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             ('$borrower_name', '$initials', '$mobile_number', '$email_id', '$city', '$vehicle_name', '$model', '$loan_amount','$co_name', '$co_mobile', '$co_relationship', '$created_by','$proposal_status')";
 
     if (mysqli_query($conn, $sql)) {
+
         $proposal_id = mysqli_insert_id($conn); // Get last inserted proposal ID
+        // file_put_contents("log.txt", date("Y-m-d H:i:s") . " - save  $proposal_id \n", FILE_APPEND);
         // Handle file uploads
         if (isset($_FILES['files'])) {
             $uploadDir = "uploads/";  
@@ -85,17 +124,20 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
         }
         
-        
-        
 
         // Save new comment (if any)
         if (!empty($_POST['comments'])) {
             $new_comment = mysqli_real_escape_string($conn, $_POST['comments']);
             $comment_sql = "INSERT INTO proposal_comments (proposal_id, comment,created_at, user_id) VALUES ('$proposal_id', '$new_comment',NOW(), '$created_by')";
+            file_put_contents("log.txt", date("Y-m-d H:i:s") . " - comments save  $comment_sql \n", FILE_APPEND);
             mysqli_query($conn, $comment_sql);
         }
+        //file_put_contents("log.txt", date("Y-m-d H:i:s") . " - save  completed \n", FILE_APPEND);
 
-        echo "Proposal saved successfully!";
+        $_SESSION['alert_message'] = "Proposal created successfully!";
+        $_SESSION['alert_type'] = "success"; // Bootstrap success message
+        
+     
     } else {
         echo "Error: " . mysqli_error($conn);
     }
@@ -443,7 +485,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         <div class="col-md-6">
             <h5>Applicant Details</h5>
             <div class="form-group">
-                <label>Agent Request Number</label>
+                <label>ARN</label>
                 <input type="text" class="form-control" name="agent_request_number" value="DF-MSK-001" readonly>
             </div>
             <div class="form-group">
@@ -572,7 +614,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     </div>
 
     <!-- Upload Documents Section -->
-    <div class="container mt-4">
+    <div class="mt-4" style="padding-bottom:150px;" >
         <h5>Upload Documents</h5>
         <div class="row">
             
@@ -595,29 +637,49 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
         </div>
     </div>
 
-    <!-- Submit Button -->
-    <div class="mt-4 text-end">
-        <button type="submit" value="draft" class="btn btn-outline-secondary me-2" onclick="setAction('draft')">
-            <i class="fas fa-file-alt"></i> Save as Draft
+   <!-- Submit Button -->
+    <div class="mt-4 text-end" style="position: fixed; z-index:999; bottom:0px; right:0px; background-color:#fff; width:100%;">
+        <!-- Status Dropdown -->
+        <select   id="statusDropdown" name="proposal_status" class="form-select d-inline-block w-auto me-2">
+            <?php foreach ($statuses as $status): ?>
+                <option value="<?= htmlspecialchars($status['status_id']) ?>"><?= htmlspecialchars($status['status_name']) ?></option>
+            <?php endforeach; ?>
+        </select>
+
+        <!-- Submit Button -->
+        <button type="submit" value="submit" class="btn btn-success" style="top:10px; position:relative" onclick="setAction()">
+            <i class="fas fa-paper-plane"></i> Submit Proposal
         </button>
-        <button type="submit" value="submit" class="btn btn-success" onclick="setAction('submit')">
-            <i class="fas fa-paper-plane"></i> Save & Submit for Review
-        </button>
+
         <input type="hidden" name="action" id="actionField">
+        <input type="hidden" name="alert_flag" id="alert_flag">
+        <input type="hidden" name="alert_message" id="alert_message">
     </div>
 
 
 </form>
     </div>
     <!-- Modal to display enlarged content -->
-    <div id="previewModal" style="display:none;">
+    <div id="previewModal" style="display:none;z-index:9999">
         <div id="modalContent">
             <span id="closeModal" style="cursor: pointer; font-size: 20px; color: red;">&times;</span>
             <div id="modalPreviewContainer"></div>
         </div>
     </div>
 </body>
-</html>
+<div id="loader" style="
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    border-radius: 10px;
+    text-align: center;
+">Uploading...</div>
+
 
 <script>
         const documentCategories = [
@@ -814,8 +876,13 @@ console.error("Failed to read clipboard contents:", err);
         // Submit the form with all files
         uploadForm.addEventListener('submit', function(event) {
             event.preventDefault(); // Prevent the default form submission
+            document.getElementById('loader').style.display = 'block'; // Show loader
 
             const formData = new FormData(uploadForm); // Capture all form fields
+            
+            // Get the clicked button value
+            const submitButton = document.activeElement; // Get the button that triggered the event
+            const buttonValue = submitButton ? encodeURIComponent(submitButton.value) : '';
 
             // Add all files from all categories to FormData
             for (const category in filesToUpload) {
@@ -830,15 +897,20 @@ console.error("Failed to read clipboard contents:", err);
             xhr.open('POST', '', true);
 
             xhr.onload = function() {
+                document.getElementById('loader').style.display = 'none'; // Hide loader
                 if (xhr.status === 200) {
-                    // Successfully uploaded
-                    alert('Files uploaded successfully!');
-                    location.reload(); // Reload page to clear the form
+                    document.getElementById('alert_flag').value = '1';
+                    document.getElementById('alert_message').value = 'Saved Successfully';
+
+                    location.href="proposal.php?status_code=1024&submit_type=${buttonValue}";
                 } else {
                     alert('Error uploading files!');
                 }
             };
-
+            xhr.onerror = function() {
+                document.getElementById('loader').style.display = 'none'; // Hide loader on error
+                alert('Network error! Please try again.');
+            };
             xhr.send(formData); // Send all files via AJAX
         });
 
