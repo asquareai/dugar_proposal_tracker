@@ -13,7 +13,19 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['create_proposal'])) {
 }
 
 // Fetch all proposals
-$query = "SELECT * FROM proposals";
+$query = "SELECT 
+    p.id, 
+    u.full_name AS 'User', 
+    p.created_by AS 'Created By', 
+    p.borrower_name AS 'Borrower Name', 
+    p.city AS 'City', 
+    CONCAT(p.vehicle_name, ' - ', p.model) AS 'Vehicle', 
+    p.loan_amount AS 'Loan Amount', 
+    ps.status_name AS 'Status'
+FROM proposals p
+INNER JOIN users u ON p.created_by = u.id
+INNER JOIN proposal_status_master ps ON p.status = ps.status_id;
+";
 $result = mysqli_query($conn, $query);
 ?>
 
@@ -35,8 +47,11 @@ $result = mysqli_query($conn, $query);
             <table id="proposalTable" class="table table-hover table-striped table-bordered nowrap" style="width:100%">
                 <thead class="table-row-header">
                     <tr>
-                        <th>Title</th>
-                        <th>Client</th>
+                        <th>Proposal #</th>
+                        <th>Created By</th>
+                        <th>Borrower Name</th>
+                        <th>City</th>
+                        <th>Vehicle</th>
                         <th>Amount</th>
                         <th>Status</th>
                         <th>Action</th>
@@ -45,12 +60,52 @@ $result = mysqli_query($conn, $query);
                 <tbody>
                     <?php while ($row = mysqli_fetch_assoc($result)) { ?>
                         <tr>
-                            <td><?php echo $row['title']; ?></td>
-                            <td><?php echo $row['client_name']; ?></td>
-                            <td><?php echo number_format($row['amount'], 2); ?></td>
-                            <td><span class="badge bg-<?php echo ($row['status'] == 'Pending' ? 'warning' : ($row['status'] == 'Approved' ? 'success' : 'danger')); ?>">
-                                <?php echo $row['status']; ?>
-                            </span></td>
+                            <td><?php echo $row['id']; ?></td>
+                            <td><?php echo $row['User']; ?></td>
+                            <td><?php echo $row['Borrower Name']; ?></td>
+                            <td><?php echo $row['City']; ?></td>
+                            <td><?php echo $row['Vehicle']; ?></td>
+                            <td><?php echo $row['Loan Amount']; ?></td>
+                            <td>
+                                <span class="badge bg-<?php 
+                                    switch ($row['Status']) {
+                                        case 'Draft':
+                                            echo 'secondary'; // Gray for draft
+                                            break;
+                                        case 'Submitted for Review':
+                                            echo 'warning'; // Yellow for pending review
+                                            break;
+                                        case 'Requested for Documents':
+                                            echo 'info'; // Light blue for document request
+                                            break;
+                                        case 'Documents Uploaded':
+                                            echo 'primary'; // Blue for document upload
+                                            break;
+                                        case 'Resubmitted for Review':
+                                            echo 'dark'; // Dark for re-review stage
+                                            break;
+                                        case 'Sent for Approval':
+                                            echo 'purple'; // Purple for sent to approval
+                                            break;
+                                        case 'Approved':
+                                            echo 'success'; // Green for approved
+                                            break;
+                                        case 'Rejected':
+                                            echo 'danger'; // Red for rejected
+                                            break;
+                                        case 'On Hold':
+                                            echo 'secondary'; // Gray for on hold
+                                            break;
+                                        case 'Closed':
+                                            echo 'dark'; // Dark for closed cases
+                                            break;
+                                        default:
+                                            echo 'secondary'; // Default case for unknown status
+                                    }
+                                ?>">
+                                    <?php echo htmlspecialchars($row['Status']); ?>
+                                </span>
+                            </td>
                             <td>
                                 <button class="btn btn-info btn-sm">Open</button>
                             </td>

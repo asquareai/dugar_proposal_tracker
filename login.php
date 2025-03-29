@@ -32,6 +32,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['user_fullname'] = $row['full_name'];
             $_SESSION['last_login_time'] = $row['last_login'];
             $_SESSION['user_role'] = $row['role'];
+            $_SESSION['user_id'] = $row['role'];
             header("Location: dashboard.php");
             exit();
         } else {
