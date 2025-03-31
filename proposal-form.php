@@ -3,7 +3,26 @@ include 'config.php'; // Database connection
 session_start(); // Start the session
 $show_alert = 0;
 
-$proposal_mode = "NEW";
+$proposal_mode = "NEW"; // Default mode
+$current_status ='';
+if (isset($_GET['id']) && !empty($_GET['id'])) {
+    $proposal_id = intval($_GET['id']); // Get proposal ID from query string
+    $proposal_mode = "EDIT"; // Change mode to EDIT
+    $query = "SELECT * FROM proposals WHERE id='$proposal_id'";
+    $result = mysqli_query($conn, $query);
+    
+    if ($result) {
+        $selected_proposal_details = mysqli_fetch_assoc($result); // Fetch the row as an associative array
+        $current_status = $selected_proposal_details["status"];
+        echo "Data: " . $selected_proposal_details["ar_user_id"]; // Now it will work
+    } else {
+        echo "Error: " . mysqli_error($conn); // Debugging in case of error
+    }
+
+} else {
+    $proposal_id = ""; // No ID means a new proposal
+}
+
 $allowed_statuses  = ['Draft'];
 // Allowed Status Names (Set dynamically based on your business logic)
 if ( $_SESSION['user_role'] === "sales")
@@ -58,7 +77,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $model = mysqli_real_escape_string($conn, $_POST['vehicle_model']);
     $loan_amount = mysqli_real_escape_string($conn, $_POST['loan_amount']);
     $comments = mysqli_real_escape_string($conn, $_POST['comments']);
-    
+    $agent_request_number = $_POST['agent_request_number'];
     // Co-applicant details
     $co_name = mysqli_real_escape_string($conn, $_POST['coapplicant_name']);
     $co_mobile = mysqli_real_escape_string($conn, $_POST['coapplicant_mobile']);
@@ -67,11 +86,12 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // Capture the agent (user who created it)
     $created_by = $_SESSION['user_id']; // Assuming user is logged in
     
+    
     // Insert into proposal table
     $sql = "INSERT INTO proposals 
-            (borrower_name, initials, mobile_number, email, city, vehicle_name, model, loan_amount,  co_applicant_name, co_applicant_mobile, co_applicant_relationship, created_by, status)
+            (borrower_name, initials, mobile_number, email, city, vehicle_name, model, loan_amount,  co_applicant_name, co_applicant_mobile, co_applicant_relationship, created_by, status, ar_user_id)
             VALUES 
-            ('$borrower_name', '$initials', '$mobile_number', '$email_id', '$city', '$vehicle_name', '$model', '$loan_amount','$co_name', '$co_mobile', '$co_relationship', '$created_by','$proposal_status')";
+            ('$borrower_name', '$initials', '$mobile_number', '$email_id', '$city', '$vehicle_name', '$model', '$loan_amount','$co_name', '$co_mobile', '$co_relationship', '$created_by','$proposal_status','$agent_request_number')";
 
     if (mysqli_query($conn, $sql)) {
 
@@ -144,6 +164,10 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     mysqli_close($conn);
 }
+
+$query = "select id, full_name from users where role='sales'";
+$agent_users = mysqli_query($conn, $query);
+
 ?>
 
 
@@ -155,396 +179,126 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>New Proposal</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="assets/css/proposal-form.css" rel="stylesheet">
     <!-- Bootstrap JS Bundle (including Popper.js) -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 
-    <style>
-       .container {
-            width: 100vw; /* Full viewport width */
-            max-width: 100%; /* Override Bootstrap's max-width */
-            height: 100vh; /* Full viewport height */
-            padding: 20px;
-            padding-top: 0px;
-            margin-top: 0px;
-            border-radius: 0; /* Remove rounded corners */
-        }
-
-
-        .form-group {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        .form-group label {
-            width: 40%; /* Adjust width as needed */
-            text-align: right; /* Align text to the right */
-            font-weight: normal; /* Make text normal (not bold) */
-            padding-right: 10px; /* Add some space between label and input */
-        }
-
-        .form-group input, .form-group select, .form-group textarea {
-            width: 60%;
-        }
-        .comments-box {
-            width: 100%;
-            max-width: 500px;
-            background: #ffffff;
-            border-radius: 10px;
-            box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-            padding: 15px;
-            font-family: 'Arial', sans-serif;
-            overflow: hidden;
-        }
-
-        .comments-list {
-            max-height: 450px;
-            overflow-y: auto;
-            padding: 10px;
-            border-bottom: 1px solid #ddd;
-        }
-
-        .comment-entry {
-            background: #f9f9f9;
-            padding: 10px;
-            border-radius: 8px;
-            margin-bottom: 10px;
-            position: relative;
-            display: flex;
-            align-items: flex-start;
-        }
-
-        .comment-icon {
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
-            color: #007bff;
-            font-size: 16px;
-            margin-right: 10px;
-        }
-
-        .comment-content {
-            flex: 1;
-        }
-
-        .comment-entry small {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            color: #555;
-            font-size: 12px;
-            margin-bottom: 5px;
-        }
-
-        .comment-time {
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
-            color: #888;
-            font-size: 10px;
-            display: flex;
-            align-items: center;
-        }
-
-        .comment-time::before {
-            content: "\f017"; /* Clock icon */
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
-            margin-right: 5px;
-        }
-
-        .comment-user::before {
-            content: "\f007"; /* User icon */
-            font-family: "Font Awesome 6 Free";
-            font-weight: 900;
-            color: #007bff;
-            margin-right: 5px;
-        }
-
-        .comment-entry p {
-            margin: 5px 0 0;
-            color: #333;
-            font-size: 14px;
-        }
-
-        .new-comment {
-            display: flex;
-            flex-direction: column; /* Ensures label and textarea are on separate lines */
-            margin-top: 10px;
-            padding-top: 10px;
-        }
-
-        .comment-label {
-            font-size: 14px;
-            font-weight: bold;
-            color: #333;
-            margin-bottom: 5px; /* Adds spacing between label and textarea */
-        }
-
-        .new-comment textarea {
-            height: 100px;
-            border: 1px solid #ccc;
-            border-radius: 8px;
-            padding: 10px;
-            resize: none;
-            font-size: 14px;
-            color: #333;
-            background: #f8f9fa;
-            width: 100%;
-        }
-
-        .new-comment textarea::placeholder {
-            color: #aaa;
-        }
-
-        .close-fixed {
-            position: fixed;
-            top: 10px;
-            right: 15px;
-            background: red;
-            color: white;
-            border: none;
-            font-size: 20px;
-            padding: 5px 10px;
-            cursor: pointer;
-            z-index: 9999;
-        }
-       /* Container to display cards in a row */
-    .category-container {
-        display: flex;
-        overflow-x: auto;
-        width: 100%;
-        padding: 10px 0; /* Padding for top and bottom */
-    }
-
-    /* Style for individual category cards */
-    .category-card {
-        flex: 0 0 auto;  /* Ensures the card does not grow or shrink */
-        border: 1px solid rgb(187, 181, 181); /* Light border for a modern look */
-        margin: 10px;
-        width: 100%;
-        box-sizing: border-box; /* Include padding and borders in the width */
-        border-radius: 2px; /* Rounded corners for a modern touch */
-        background-color: #ffffff; /* White background */
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1); /* Soft shadow for elevation effect */
-        transition: all 0.3s ease; /* Smooth transition for hover effects */
-    }
-    .category-card-container
-    {
-        padding:20px;
-    }
-    .category-card-paste-button {
-        align-items: center;
-        gap: 6px;
-        border: none;
-        background-color: rgb(138, 191, 245);
-        color: #333;
-        font-size: 14px;
-        font-weight: 500;
-        padding: 4px 12px;
-        border-radius: 8px;
-        cursor: pointer;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
-        top: -42px;
-        left: calc(100% - 126px);
-        position: relative;
-    }
-
-    .category-card-paste-button:hover {
-        background-color:rgb(45, 255, 238);
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    }
-
-    .category-card-paste-button i {
-        font-size: 16px;
-    }
-
-    /* Hover effect for card */
-    .category-card:hover {
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); /* Increase shadow on hover */
-        transform: translateY(-5px); /* Slight lift effect on hover */
-    }
-
-    /* Header style for category cards */
-    .category-card h3 {
-        font-size: 16px; /* Smaller font for header */
-        font-weight: 600; /* Medium bold text */
-        margin-top: 0;
-        padding: 10px;
-        background-color: #f2f2f2; /* Light background for header */
-        border-bottom: 1px solid rgb(187, 181, 181); /* Light border for a modern look */
-        border-radius: 2px;
-        color: #333; /* Dark text color */
-        text-align: left; /* Center align the title */
-    }
-
-
-    /* File preview style */
-    .file-preview {
-        display: inline-block;
-        margin: 10px;
-    }
-
-    /* Preview container styles */
-    .preview-container {
-        margin-top: 15px;
-    }
-
-    /* Image preview style */
-    .preview-container img {
-        width:200px;
-        height: auto;
-        margin: 5px;
-        border-radius: 4px; /* Rounded corners for images */
-        cursor:pointer;
-    }
-
-    /* Remove button style */
-    .preview-container .file-remove {
-        cursor: pointer;
-        font-size: 12px;
-        color: #ff4d4d; /* Red color for remove button */
-        margin-top: 5px;
-        display: block;
-        text-align: left;
-        padding: 5px;
-        border-radius: 4px;
-        transition: background-color 0.3s ease;
-        width:80px;
-        cursor: pointer;
-    }
-
-    /* Change remove button background on hover */
-    .preview-container .file-remove:hover {
-        background-color: #ffcccc; /* Light red background on hover */
-    }
-
-    /* PDF icon style */
-    .preview-container .pdf-icon {
-        width: 80px;
-        height: 120px;
-        background: url('assets/images/pdf-icon.png') no-repeat center center;
-        background-size: cover;
-        margin: 5px;
-        border-radius: 4px; /* Rounded corners for PDF icon */
-        cursor: pointer;
-    }
-    /* Modal Styles */
-    #previewModal {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7);
-            display: none;
-            justify-content: center;
-            align-items: center;
-        }
-        #modalContent {
-            position: relative;
-            background-color: white;
-            padding: 20px;
-            max-width: 90%;
-            max-height: 90%;
-            overflow: auto;
-        }
-        #modalPreviewContainer img {
-            max-width: 100%;
-            max-height: 100%;
-        }
-        #modalPreviewContainer .pdf-icon {
-            width: 100%;
-            height: auto;
-        }
-        .btn {
-            font-size: 14px;
-            font-weight: 600;
-            padding: 10px 15px;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            gap: 8px; /* Adds spacing between icon and text */
-            margin-bottom:20px;
-        }
-
-        .btn i {
-            font-size: 16px;
-        }
-
-    </style>
+    
 </head>
 <body>
     
     <div class="container mt-4">
     <button type="button" class="close-fixed" onclick="window.location.href='proposal.php';">
         <i class="bi bi-x-circle"></i>
-    </button>        <h4 class="mb-3">Create New Proposal </em></h4>
+    </button>        
+    <h4 class="mb-3">
+    <h4 class="mb-3">
+        <?php if ($proposal_mode === "EDIT") { ?>
+            <span class="text-primary">
+                <i class="bi bi-pencil-square"></i> Edit Proposal <em>#<?php echo htmlspecialchars($proposal_id); ?></em>
+            </span>
+        <?php } else { ?>
+            <span class="text-success">
+                <i class="bi bi-plus-circle"></i> Create New Proposal
+            </span>
+        <?php } ?>
+    </h4>
+
     <form action="" method="POST" id="uploadForm" enctype="multipart/form-data">
+    <input type="hidden" id="hf_proposal_id" name="hf_proposal_id" value="<?php echo htmlspecialchars($proposal_id); ?>">
+    <input type="hidden" id="hf_proposal_mode" name="hf_proposal_mode" value="<?php echo htmlspecialchars($proposal_mode); ?>">
     <div class="row">
         <!-- Left Side: Applicant Details -->
         <div class="col-md-6">
             <h5>Applicant Details</h5>
             <div class="form-group">
-                <label>ARN</label>
-                <input type="text" class="form-control" name="agent_request_number" value="DF-MSK-001" readonly>
+                <label>Agent</label>
+                
+                <select class="form-control" name="agent_request_number" id="agent_request_number"
+                    <?php 
+                        $is_disabled = ($_SESSION['user_role'] === "user" || $_SESSION['user_role'] === "sales");
+                        echo $is_disabled ? 'disabled' : ''; 
+                    ?>
+                    onchange="syncHiddenField(this)">
+                    <option value="">-- Select Agent --</option>
+                    <?php foreach ($agent_users as $user) { ?>
+                        <option value="<?php echo $user['id']; ?>" 
+                            <?php 
+                                if ($proposal_mode === "EDIT" && $selected_proposal_details['ar_user_id'] == $user['id']) {
+                                    echo 'selected';
+                                }
+                                elseif ($proposal_mode === "NEW" && $_SESSION['user_id'] == $user['id']) {
+                                    echo 'selected';
+                                }
+                            ?>>
+                            <?php echo htmlspecialchars($user['full_name']); ?>
+                        </option>
+                    <?php } ?>
+                </select>
+
+                <!-- Hidden field is only added if the dropdown is disabled -->
+                <?php if ($is_disabled) { ?>
+                    <input type="hidden" name="agent_request_number" id="hidden_agent_request_number" 
+                        value="<?php echo $selected_proposal_details['ar_user_id'] ?? $_SESSION['user_id']; ?>">
+                <?php } ?>
             </div>
             <div class="form-group">
                 <label>Borrower Name</label>
-                <input type="text" class="form-control" name="borrower_name" placeholder="Borrower name" value="Venkat" required>
+                <input type="text" class="form-control" name="borrower_name" placeholder="Borrower name" value="<?php echo htmlspecialchars($selected_proposal_details['borrower_name'] ?? ''); ?>" required>
             </div>
             <div class="form-group">
                 <label>Initials</label>
-                <input type="text" class="form-control" name="initials" placeholder="Only alphabets, space, or periods" value="M" required>
+                <input type="text" class="form-control" name="initials" placeholder="Only alphabets, space, or periods" value="<?php echo htmlspecialchars($selected_proposal_details['initials'] ?? ''); ?>" required>
             </div>
             <div class="form-group">
                 <label>Mobile Number</label>
-                <input type="text" class="form-control" name="mobile_number" placeholder="10-digit number" required value="9894295995">
+                <input type="text" class="form-control" name="mobile_number" placeholder="10-digit number" required value="<?php echo htmlspecialchars($selected_proposal_details['mobile_number'] ?? ''); ?>">
             </div>
             <div class="form-group">
                 <label>Email ID</label>
-                <input type="email" class="form-control" name="email_id" placeholder="Borrower’s email id" required value="mvk.venkatesan@gmail.com">
+                <input type="email" class="form-control" name="email_id" placeholder="Borrower’s email id" required value="<?php echo htmlspecialchars($selected_proposal_details['email'] ?? ''); ?>">
             </div>
             <div class="form-group">
                 <label>City</label>
-                <select class="form-control" name="city">
-                    <option value="">-- Select City --</option>
-                    <option value="city1">City 1</option>
-                    <option value="city2">City 2</option>
-                </select>
+                <input type="text" class="form-control" name="city" placeholder="Borrower’s city" required value="<?php echo htmlspecialchars($selected_proposal_details['city'] ?? ''); ?>">
             </div>
             <div class="form-group">
                 <label>Vehicle Name</label>
-                <input type="text" class="form-control" name="vehicle_name" placeholder="Name of the vehicle" required value="Honda">
+                <input type="text" class="form-control" name="vehicle_name" placeholder="Name of the vehicle" required value="<?php echo htmlspecialchars($selected_proposal_details['vehicle_name'] ?? ''); ?>">
             </div>
             <div class="form-group">
                 <label>Model</label>
-                <input type="text" class="form-control" name="vehicle_model" placeholder="Manufacturing year" required value="City">
+                <input type="text" class="form-control" name="vehicle_model" placeholder="Manufacturing year" required value="<?php echo htmlspecialchars($selected_proposal_details['model'] ?? ''); ?>">
             </div>
             <div class="form-group">
                 <label>Loan Amount</label>
-                <input type="text" class="form-control" name="loan_amount" placeholder="Requested loan amount" required value="150000">
+                <input type="text" class="form-control" name="loan_amount" placeholder="Requested loan amount" required value="<?php echo htmlspecialchars($selected_proposal_details['loan_amount'] ?? ''); ?>">
             </div>
+            
             <h5>Co-Applicant Details</h5>
             <div class="form-group">
                 <label>Name</label>
-                <input type="text" class="form-control" name="coapplicant_name" placeholder="Co-applicant Name" value="co - app ">
+                <input type="text" class="form-control" name="coapplicant_name" placeholder="Co-applicant Name" value="<?php echo htmlspecialchars($selected_proposal_details['co_applicant_name'] ?? ''); ?>">
             </div>
             <div class="form-group">
                 <label>Mobile Number</label>
-                <input type="text" class="form-control" name="coapplicant_mobile" placeholder="Co-applicant contact number" value="9003171903">
+                <input type="text" class="form-control" name="coapplicant_mobile" placeholder="Co-applicant contact number" value="<?php echo htmlspecialchars($selected_proposal_details['co_applicant_mobile'] ?? ''); ?>">
             </div>
             <div class="form-group">
                 <label>Relationship</label>
                 <select class="form-control" name="coapplicant_relationship">
                     <option value="">-- Relationship with borrower --</option>
-                    <option value="spouse">Spouse</option>
-                    <option value="parent">Parent</option>
-                    <option value="sibling">Sibling</option>
+                    <option value="spouse" <?php echo (isset($selected_proposal_details['co-applicant_relationship']) && $selected_proposal_details['co_applicant_relationship'] == 'spouse') ? 'selected' : ''; ?>>Spouse</option>
+                    <option value="parent" <?php echo (isset($selected_proposal_details['co-applicant_relationship']) && $selected_proposal_details['co_applicant_relationship'] == 'parent') ? 'selected' : ''; ?>>Parent</option>
+                    <option value="sibling" <?php echo (isset($selected_proposal_details['co-applicant_relationship']) && $selected_proposal_details['co_applicant_relationship'] == 'sibling') ? 'selected' : ''; ?>>Sibling</option>
                 </select>
             </div>
         </div>
+
         
-        <!-- Right Side: Co-Applicant Details -->
+        <!-- Right Side: Comments Details -->
         <div class="col-md-6">
             <!-- Comments Section -->
             <h5 class="mt-4">Comments</h5>
@@ -949,6 +703,13 @@ document.getElementById('closeModal').onclick = function() {
 };
 
 function setAction(value) {
-    document.getElementById('actionField').value = value; // Set hidden input value
+    docum
+    ent.getElementById('actionField').value = value; // Set hidden input value
 }
+function syncHiddenField(selectElement) {
+        let hiddenField = document.getElementById('hidden_agent_request_number');
+        if (hiddenField) {
+            hiddenField.value = selectElement.value;
+        }
+    }
 </script>
