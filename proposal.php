@@ -60,7 +60,11 @@ if (isset($_SESSION['user_role'])) {
     } elseif ($_SESSION['user_role'] === "user") {
         // Normal users see only records allocated to them
         $filterContext = " WHERE p.allocated_to_user_id = " . (int) $_SESSION['user_id'];
+    }elseif ($_SESSION['user_role'] === "approver") {
+        // Normal users see only records allocated to them
+        $filterContext = " WHERE p.status = 8";
     }
+    
 }
 // Include 'Allocated To' field only for admin users
 $allocatedToField = "";
@@ -142,23 +146,26 @@ $allocation_users = mysqli_query($conn, $query);
                             <td><?php echo $row['Vehicle']; ?></td>
                             <td><?php echo $row['Loan Amount']; ?></td>
                             <td>
-                                <span class="badge bg-<?php 
-                                    switch ($row['Status']) {
-                                        case 'Draft': echo 'secondary'; break;
-                                        case 'Submitted for Review': echo 'warning'; break;
-                                        case 'Requested for Documents': echo 'info'; break;
-                                        case 'Documents Uploaded': echo 'primary'; break;
-                                        case 'Resubmitted for Review': echo 'dark'; break;
-                                        case 'Sent for Approval': echo 'purple'; break;
-                                        case 'Approved': echo 'success'; break;
-                                        case 'Rejected': echo 'danger'; break;
-                                        case 'On Hold': echo 'secondary'; break;
-                                        case 'Closed': echo 'dark'; break;
-                                        default: echo 'secondary';
-                                    }
-                                ?>">
-                                    <?php echo htmlspecialchars($row['Status']); ?>
-                                </span>
+                            <span class="badge <?php 
+                                switch ($row['Status']) {
+                                    case 'Draft': echo 'bg-secondary'; break; // Gray
+                                    case 'Submitted for Review': echo 'bg-warning text-dark'; break; // Yellow
+                                    case 'Under Review': echo 'bg-orange text-white'; break; // Orange (custom)
+                                    case 'Documents Requested': echo 'bg-info text-dark'; break; // Light Blue
+                                    case 'More Details Required': echo 'bg-light text-dark border'; break; // Soft Gray/White
+                                    case 'Documents Uploaded': echo 'bg-primary'; break; // Blue
+                                    case 'Re-Submitted for Review': echo 'bg-dark'; break; // Dark Gray
+                                    case 'Sent for Approval': echo 'bg-purple text-white'; break; // Purple (custom)
+                                    case 'Approved': echo 'bg-success'; break; // Green
+                                    case 'Rejected': echo 'bg-danger'; break; // Red
+                                    case 'Ask for More Details': echo 'bg-teal text-white'; break; // Teal (custom)
+                                    case 'Closed': echo 'bg-dark'; break; // Dark Gray
+                                    default: echo 'bg-secondary'; // Default Gray
+                                }
+                            ?>">
+                                <?php echo htmlspecialchars($row['Status']); ?>
+                            </span>
+
                             </td>
 
                             <?php if ($_SESSION['user_role'] === "admin") { ?>
@@ -236,7 +243,7 @@ $allocation_users = mysqli_query($conn, $query);
             "ordering": true,
             "info": true,
             "lengthMenu": [5, 10, 25, 50],
-            "pageLength": 5,
+            "pageLength": 50,
             "responsive": true // Enables responsiveness
         });
     });
@@ -285,7 +292,14 @@ $allocation_users = mysqli_query($conn, $query);
         });
     });
     function openProposal(proposalId) {
-        window.location.href = "proposal-form.php?id=" + proposalId;
+
+        var user_role = "<?php echo $_SESSION['user_role']; ?>"; // Assuming stored in session
+
+        if (user_role === 'approver') {
+            window.location.href = "proposal-approval.php?id=" + proposalId;
+        } else {
+            window.location.href = "proposal-form.php?id=" + proposalId;
+        }
     }
 </script>
 

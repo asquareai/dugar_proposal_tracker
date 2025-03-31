@@ -1,7 +1,6 @@
 .container {
     width: 100vw; /* Full viewport width */
     max-width: 100%; /* Override Bootstrap's max-width */
-    height: 100vh; /* Full viewport height */
     padding: 20px;
     padding-top: 0px;
     margin-top: 0px;
@@ -26,7 +25,7 @@
 }
 .comments-box {
     width: 100%;
-    max-width: 500px;
+    /* max-width: 500px; */
     background: #ffffff;
     border-radius: 10px;
     box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
@@ -201,19 +200,6 @@ box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15); /* Increase shadow on hover */
 transform: translateY(-5px); /* Slight lift effect on hover */
 }
 
-/* Header style for category cards */
-.category-card h3 {
-font-size: 16px; /* Smaller font for header */
-font-weight: 600; /* Medium bold text */
-margin-top: 0;
-padding: 10px;
-background-color: #f2f2f2; /* Light background for header */
-border-bottom: 1px solid rgb(187, 181, 181); /* Light border for a modern look */
-border-radius: 2px;
-color: #333; /* Dark text color */
-text-align: left; /* Center align the title */
-}
-
 
 /* File preview style */
 .file-preview {
@@ -306,4 +292,42 @@ cursor: pointer;
 
 .btn i {
     font-size: 16px;
+}
+
+/* Sales Card - Light Peach */
+.card-sales {
+    font-size: 16px; /* Smaller font for header */
+    font-weight: 600; /* Medium bold text */
+    margin-top: 0;
+    padding: 10px;
+    background-color: #f2f2f2; /* Light background for header */
+    border-bottom: 1px solid rgb(187, 181, 181); /* Light border for a modern look */
+    border-radius: 2px;
+    color: #333; /* Dark text color */
+    text-align: left; /* Center align the title */
+    
+}
+
+.card-sales:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Other Roles Card - Light Blue */
+.card-other {
+    font-size: 16px; /* Smaller font for header */
+    font-weight: 600; /* Medium bold text */
+    margin-top: 0;
+    padding: 10px;
+    background-color: #fcffde; /* Light background for header */
+    border-bottom: 1px solid rgb(187, 181, 181); /* Light border for a modern look */
+    border-radius: 2px;
+    color: #333; /* Dark text color */
+    text-align: left; /* Center align the title */
+    
+}
+
+.card-other:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
 }
