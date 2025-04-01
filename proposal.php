@@ -62,10 +62,24 @@ if (isset($_SESSION['user_role'])) {
         $filterContext = " WHERE p.allocated_to_user_id = " . (int) $_SESSION['user_id'];
     }elseif ($_SESSION['user_role'] === "approver") {
         // Normal users see only records allocated to them
-        $filterContext = " WHERE p.status = 8";
+        $filterContext = " WHERE p.status in(2, 3, 4, 5, 6, 7, 8, 11)";
     }
     
 }
+// Get selected status from query string (default to 'In Progress' if not set)
+$selectedStatus = isset($_GET['status']) ? $_GET['status'] : 'In Progress';
+
+// Mapping of status for filtering
+$statusMapping = [
+    'In Progress' => [1,2, 3, 4, 5, 6, 7, 8, 11],
+    'Hold' => [12],
+    'Approved' => [9],
+    'Rejected' => [10]
+];
+
+// Get the status ID array for the selected status
+$statusIds = isset($statusMapping[$selectedStatus]) ? $statusMapping[$selectedStatus] : [2, 3, 4, 5, 6, 7, 8, 11];
+
 // Include 'Allocated To' field only for admin users
 $allocatedToField = "";
 $joinAllocatedTo = "";
@@ -75,7 +89,15 @@ if ($_SESSION['user_role'] === "admin") {
     $joinAllocatedTo = " LEFT JOIN users u2 ON p.allocated_to_user_id = u2.id"; // Join users table to get name
 }
 
-// Build the query dynamically
+// Define the main status mapping
+$mainStatusField = "
+    CASE 
+        WHEN p.status IN (" . implode(",", $statusIds) . ") THEN '$selectedStatus'
+        ELSE 'Other'
+    END AS 'Main Status'
+";
+
+// Build the query dynamically with selected status filter
 $query = "SELECT 
     p.id, 
     u.full_name AS 'User', 
@@ -85,14 +107,17 @@ $query = "SELECT
     p.city AS 'City', 
     CONCAT(p.vehicle_name, ' - ', p.model) AS 'Vehicle', 
     p.loan_amount AS 'Loan Amount', 
-    ps.status_name AS 'Status'
+    ps.status_name AS 'Status',
+    p.status AS 'StatusID',
+    $mainStatusField
     $allocatedToField
 FROM proposals p 
 INNER JOIN users u ON p.created_by = u.id
 INNER JOIN proposal_status_master ps ON p.status = ps.status_id
-LEFT JOIN users u3 ON p.ar_user_id = u3.id -- Join for Agent Name
+LEFT JOIN users u3 ON p.ar_user_id = u3.id 
 $joinAllocatedTo
-$filterContext"; // Add filter at the end
+$filterContext
+AND p.status IN (" . implode(",", $statusIds) . ")"; // Filter based on selected status
 
 $result = mysqli_query($conn, $query);
 
@@ -100,7 +125,40 @@ $query = "select id, full_name from users where role='user'";
 $allocation_users = mysqli_query($conn, $query);
 
 
+$isSales = ($_SESSION['user_role'] === 'sales') ? 1 : 0;
 
+// SQL query to count records based on status mapping
+$sql = "
+    SELECT 
+        CASE 
+            WHEN status IN (" . ($isSales ? "1," : "") . "2, 3, 4, 5, 6, 7, 8, 11) THEN 'In Progress'
+            WHEN status = 9 THEN 'Approved'
+            WHEN status = 10 THEN 'Rejected'
+            WHEN status = 12 THEN 'Hold'
+            ELSE 'Other' 
+        END AS category,
+        COUNT(*) as count 
+    FROM proposals 
+    GROUP BY category
+";
+
+$statuscoountresult = $conn->query($sql);
+
+// Initialize counts
+$counts = [
+    "In Progress" => 0,
+    "Hold" => 0,
+    "Approved" => 0,
+    "Rejected" => 0
+];
+
+// Assign counts dynamically
+while ($row = $statuscoountresult->fetch_assoc()) {
+    $category = $row['category'];
+    if (isset($counts[$category])) {
+        $counts[$category] = $row['count'];
+    }
+}
 
 
 ?>
@@ -116,7 +174,58 @@ $allocation_users = mysqli_query($conn, $query);
 
 <div class="container-fluid mt-4"> <!-- Full width -->
     <div class="d-flex flex-wrap gap-2 mb-3">
-        <button class="btn btn-primary" onclick="proposalForm()">Create New Proposal</button>
+        <?php if ($_SESSION['user_role'] !== "approver"): ?>
+            <button class="btn btn-primary" onclick="proposalForm()">Create New Proposal</button>
+        <?php endif; ?>
+    </div>
+    <div class="row">
+        <div class="col-md-3">
+            <div class="card border-warning shadow-lg   <?php if ($selectedStatus == "In Progress"):?>active-category  <?php endif; ?>   position-relative">
+                <div class="card-header bg-warning text-white fw-bold d-flex justify-content-between align-items-center">
+                    In Progress <?php if ($selectedStatus == "In Progress"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['In Progress']; ?></span></p>
+                    <button class="btn btn-outline-warning btn-sm" onclick="filterByStatus('In Progress')">View Details</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+        <div class="card border-secondary shadow-lg   <?php if ($selectedStatus == "Hold"):?>active-category  <?php endif; ?>   position-relative">
+                <div class="card-header bg-secondary text-white fw-bold d-flex justify-content-between align-items-center">
+                    Hold <?php if ($selectedStatus == "Hold"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['Hold']; ?></span></p>
+                    <button class="btn btn-outline-secondary btn-sm" onclick="filterByStatus('Hold')">View Details</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+        <div class="card border-success shadow-lg   <?php if ($selectedStatus == "Approved"):?>active-category  <?php endif; ?>   position-relative">
+                <div class="card-header bg-success text-white fw-bold d-flex justify-content-between align-items-center">
+                    Approved <?php if ($selectedStatus == "Approved"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['Approved']; ?></span></p>
+                    <button class="btn btn-outline-success btn-sm" onclick="filterByStatus('Approved')">View Details</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+        <div class="card border-danger shadow-lg   <?php if ($selectedStatus == "Rejected"):?>active-category  <?php endif; ?>   position-relative">
+                <div class="card-header bg-danger text-white fw-bold d-flex justify-content-between align-items-center">
+                    Rejected <?php if ($selectedStatus == "Rejected"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['Rejected']; ?></span></p>
+                    <button class="btn btn-outline-danger btn-sm" onclick="filterByStatus('Rejected')">View Details</button>
+                </div>
+            </div>
+        </div>
     </div>
     <?php if (mysqli_num_rows($result) > 0) { ?>
         <div class="table-responsive w-100" style="max-width: 100%;">  <!-- Full width -->
@@ -180,7 +289,11 @@ $allocation_users = mysqli_query($conn, $query);
                                 </td>
                             <?php } ?>
                             <td>
-                                <button class="btn btn-info btn-sm" onclick="openProposal(<?php echo $row['id']; ?>)">Open</button>
+                                <button class="btn btn-info btn-sm" 
+                                    onclick="openProposal(<?php echo $row['id']; ?>)" 
+                                    <?php echo ($_SESSION['user_role'] === 'approver' && $row['StatusID'] != 9) ? 'disabled' : ''; ?>>
+                                    Open
+                                </button>
                             </td>
                         </tr>
                     <?php } ?>
@@ -300,6 +413,10 @@ $allocation_users = mysqli_query($conn, $query);
         } else {
             window.location.href = "proposal-form.php?id=" + proposalId;
         }
+    }
+    function filterByStatus(status) {
+        // Redirect to the same page with the selected status in the URL
+        window.location.href = window.location.pathname + '?status=' + encodeURIComponent(status);
     }
 </script>
 

@@ -56,3 +56,14 @@
     min-width: 120px;
     text-align: center;
 }
+.active-category {
+    background-color: #fff3cd; /* Light yellow for In Progress */
+    border: 2px solid #ffc107;
+    transition: all 0.3s ease-in-out;
+}
+
+.selected-icon {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: white;
+}

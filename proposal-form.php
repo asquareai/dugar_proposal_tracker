@@ -2,7 +2,7 @@
 include 'config.php'; // Database connection
 session_start(); // Start the session
 $show_alert = 0;
-
+$maxFileSize = 2 * 1024 * 1024;
 $proposal_mode = "NEW"; // Default mode
 $current_status ='';
 $allow_edit = "EDIT";
@@ -110,6 +110,7 @@ while ($row = $result->fetch_assoc()) {
     $statuses[] = $row;
 }
 
+
 // Close statement
 $stmt->close();
 
@@ -173,6 +174,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     // Handle file uploads
     if (isset($_FILES['files']) && $proposal_id) {
+        
         $uploadDir = "uploads/";
         foreach ($_FILES['files']['name'] as $category => $files) { 
             foreach ($files as $key => $fileName) {
@@ -195,6 +197,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     }
 
     // Save comment if any
+    
     if (!empty($comments) && $proposal_id) {
         $comment_sql = "INSERT INTO proposal_comments (proposal_id, comment, created_at, user_id) 
                         VALUES ('$proposal_id', '$comments', NOW(), '$created_by')";
@@ -203,6 +206,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $_SESSION['alert_message'] = "Proposal saved successfully!";
     $_SESSION['alert_type'] = "success";
+    //header("Location: proposals.php");
+    exit;
 }
 
 
@@ -210,6 +215,10 @@ $query = "select id, full_name from users where role='sales'";
 $agent_users = mysqli_query($conn, $query);
 
 $is_disabled_class = ($allow_edit === "VIEW ONLY") ? 'disabled-div' : '';
+
+$query = "select id, category, isadditional from document_category_master";
+$document_category = mysqli_query($conn, $query);
+
 
 mysqli_close($conn);
 ?>
@@ -232,7 +241,10 @@ mysqli_close($conn);
     
 </head>
 <body>
-    
+    <div id="fileSizeAlert" class="alert alert-danger d-none position-fixed top-0 start-50 translate-middle-x mt-3" role="alert">
+    <strong>File Size Error:</strong> <span id="fileSizeMessage"></span>
+</div>
+
     <div class="container mt-4">
     <button type="button" class="close-fixed" onclick="window.location.href='proposal.php';">
         <i class="bi bi-x-circle"></i>
@@ -403,14 +415,15 @@ mysqli_close($conn);
    <!-- Submit Button -->
     <div class="mt-4 text-end" style="position: fixed; z-index:999; bottom:0px; right:0px; background-color:#fff; width:100%;">
         <!-- Status Dropdown -->
-        <select   id="statusDropdown" name="proposal_status" class="form-select d-inline-block w-auto me-2 <?php echo $is_disabled_class; ?>" >
+        <select id="statusDropdown" name="proposal_status" class="form-select d-inline-block w-auto me-2 <?php echo $is_disabled_class; ?>">
+            <option value="" disabled selected>-- Select Status --</option>
             <?php foreach ($statuses as $status): ?>
                 <option value="<?= htmlspecialchars($status['status_id']) ?>"><?= htmlspecialchars($status['status_name']) ?></option>
             <?php endforeach; ?>
         </select>
 
         <!-- Submit Button -->
-        <button type="submit" value="submit"  style="top:10px; position:relative" onclick="setAction()" class="btn btn-success <?php echo $is_disabled_class; ?>">
+        <button type="button" value="submit"  style="top:10px; position:relative" onclick="setAction()" class="btn btn-success <?php echo $is_disabled_class; ?>">
             <i class="fas fa-paper-plane"></i> Submit Proposal
         </button>
 
@@ -447,23 +460,32 @@ mysqli_close($conn);
 
 <script>
 const user_role = "<?php echo $_SESSION['user_role']; ?>"; // Get user role from PHP
- const documentCategories = [
-    { id: '1', name: 'Aadhar Card', class:'card-sales' },
-    { id: '2', name: 'PAN Card', class:'card-sales' },
-    { id: '3', name: 'Driving License', class:'card-sales' },
-    { id: '4', name: 'RC Copy', class:'card-sales' },
-    { id: '5', name: 'Insurance Copy', class:'card-sales' }
 
-];
+let documentCategories = [
+        <?php
+        foreach ($document_category as $doc) {
+            if ($doc['isadditional'] == 0) { // Check if isadditional is 0
+                echo "{ id: '{$doc['id']}', name: '{$doc['category']}', class: 'card-sales' },";
+            }
+        }
+        ?>
+    ];
 
-// If user_role is not 'sales', add additional documents
-if (user_role.toLowerCase() !== 'sales') {
-    documentCategories.push(
-        { id: '6', name: 'Additional Documents', class:'card-other' },
-        { id: '7', name: 'CIBL', class:'card-other' }
-    );
-}
 
+    // If user_role is not 'sales', add additional documents
+    if (user_role.toLowerCase() !== 'sales') {
+        const additionalDocuments = [
+            <?php
+            foreach ($document_category as $doc) {
+                if ($doc['isadditional'] == 1) { // Include only additional documents
+                    echo "{ id: '{$doc['id']}', name: '{$doc['category']}', class: 'card-other' },";
+                }
+            }
+            ?>
+        ];
+
+        documentCategories = documentCategories.concat(additionalDocuments);
+    }
 const filesToUpload = {}; // Store newly added files
 const proposal_documents2 = { 
     "1": ["uploads/aadhar1.png", "uploads/aadhar2.pdf"], 
@@ -612,6 +634,8 @@ function loadExistingDocuments(categoryId, documents) {
 
 
 // Function to handle file selection and display previews
+const maxFileSize = <?php echo $maxFileSize; ?>; // Get from PHP
+
 function handleFileSelect(categoryId, input) {
     const files = input.files;
     const previewContainer = document.getElementById(`${categoryId}-preview`);
@@ -622,6 +646,14 @@ function handleFileSelect(categoryId, input) {
 
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
+
+        // **File Size Validation**
+        if (file.size > maxFileSize) {
+            showAlert(`File "${file.name}" exceeds the maximum size limit of ${maxFileSize / (1024 * 1024)} MB.`);
+
+            continue; // Skip this file
+        }
+
         const fileDiv = document.createElement('div');
         fileDiv.classList.add('file-preview');
 
@@ -662,8 +694,18 @@ function handleFileSelect(categoryId, input) {
         previewContainer.appendChild(fileDiv);
         filesToUpload[categoryId].push(file);
     }
+}
+// **Function to Show Bootstrap Alert and Auto-Hide After 5 Seconds**
+function showAlert(message) {
+    const alertBox = document.getElementById("fileSizeAlert");
+    const alertMessage = document.getElementById("fileSizeMessage");
 
-    
+    alertMessage.innerText = message;
+    alertBox.classList.remove("d-none");
+
+    setTimeout(() => {
+        alertBox.classList.add("d-none");
+    }, 5000); // Auto-hide after 5 seconds
 }
 
 // Function to handle paste events for images
@@ -735,7 +777,7 @@ documentCategories.forEach(category => {
 
         // Submit the form with all files
         uploadForm.addEventListener('submit', function(event) {
-            alert(document.getElementById("hf_deleted_documents").value);
+            
             event.preventDefault(); // Prevent the default form submission
             document.getElementById('loader').style.display = 'block'; // Show loader
 
@@ -810,8 +852,19 @@ document.getElementById('closeModal').onclick = function() {
 };
 
 function setAction(value) {
-    
-    document.getElementById('actionField').value = value; // Set hidden input value
+    var statusDropdown = document.getElementById('statusDropdown');
+    var selectedStatus = statusDropdown.value;
+
+    // Check if a valid status is selected (not the default "-- Select Status --")
+    if (!selectedStatus) {
+        alert("Please select a status before submitting the proposal.");
+        return false; // Prevent form submission
+    }
+    else
+    {
+        document.getElementById('actionField').value = value; // Set hidden input value
+        document.getElementById('uploadForm').submit(); 
+    }
 }
 function syncHiddenField(selectElement) {
         let hiddenField = document.getElementById('hidden_agent_request_number');
