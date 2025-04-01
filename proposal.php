@@ -56,13 +56,10 @@ $filterContext = ""; // Initialize filter condition
 if (isset($_SESSION['user_role'])) {
     if ($_SESSION['user_role'] === "sales") {
         // Sales users see only their records
-        $filterContext = " WHERE p.ar_user_id = " . (int) $_SESSION['user_id'];
+        $filterContext = " and p.ar_user_id = " . (int) $_SESSION['user_id'];
     } elseif ($_SESSION['user_role'] === "user") {
         // Normal users see only records allocated to them
-        $filterContext = " WHERE p.allocated_to_user_id = " . (int) $_SESSION['user_id'];
-    }elseif ($_SESSION['user_role'] === "approver") {
-        // Normal users see only records allocated to them
-        $filterContext = " WHERE p.status in(2, 3, 4, 5, 6, 7, 8, 11)";
+        $filterContext = " and p.allocated_to_user_id = " . (int) $_SESSION['user_id'];
     }
     
 }
@@ -116,8 +113,9 @@ INNER JOIN users u ON p.created_by = u.id
 INNER JOIN proposal_status_master ps ON p.status = ps.status_id
 LEFT JOIN users u3 ON p.ar_user_id = u3.id 
 $joinAllocatedTo
-$filterContext
-AND p.status IN (" . implode(",", $statusIds) . ")"; // Filter based on selected status
+where p.status IN (" . implode(",", $statusIds) . ")" .
+$filterContext; // Filter based on selected status
+
 
 $result = mysqli_query($conn, $query);
 
@@ -131,7 +129,7 @@ $isSales = ($_SESSION['user_role'] === 'sales') ? 1 : 0;
 $sql = "
     SELECT 
         CASE 
-            WHEN status IN (" . ($isSales ? "1," : "") . "2, 3, 4, 5, 6, 7, 8, 11) THEN 'In Progress'
+            WHEN status IN (1,2, 3, 4, 5, 6, 7, 8, 11) THEN 'In Progress'
             WHEN status = 9 THEN 'Approved'
             WHEN status = 10 THEN 'Rejected'
             WHEN status = 12 THEN 'Hold'
@@ -291,7 +289,7 @@ while ($row = $statuscoountresult->fetch_assoc()) {
                             <td>
                                 <button class="btn btn-info btn-sm" 
                                     onclick="openProposal(<?php echo $row['id']; ?>)" 
-                                    <?php echo ($_SESSION['user_role'] === 'approver' && $row['StatusID'] != 9) ? 'disabled' : ''; ?>>
+                                    <?php echo ($_SESSION['user_role'] === 'approver' && $row['StatusID'] != 8) ? 'disabled' : ''; ?>>
                                     Open
                                 </button>
                             </td>

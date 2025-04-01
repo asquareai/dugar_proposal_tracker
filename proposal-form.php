@@ -20,7 +20,20 @@ if (isset($_GET['id']) && !empty($_GET['id'])) {
         $current_status_text = $selected_proposal_details["status_name"];
         $status_description = $selected_proposal_details["description"];
 
-        $query = "select *, u.full_name user from proposal_comments c join users u on c.user_id = u.id where c.proposal_id='$proposal_id'";
+        if ($_SESSION["user_role"] == "sales") {
+            // Add condition to the query to filter by 'show_to_client = 1'
+            $query = "SELECT *, u.full_name AS user 
+                      FROM proposal_comments c 
+                      JOIN users u ON c.user_id = u.id 
+                      WHERE c.proposal_id = '$proposal_id' 
+                      AND c.show_to_client = 1";
+        } else {
+            // If the user is not 'sales', run the query without the 'show_to_client' condition
+            $query = "SELECT *, u.full_name AS user 
+                      FROM proposal_comments c 
+                      JOIN users u ON c.user_id = u.id 
+                      WHERE c.proposal_id = '$proposal_id'";
+        }
         $proposal_comments = mysqli_query($conn, $query);
 
         $query = "SELECT * FROM proposal_documents WHERE proposal_id='$proposal_id'";
@@ -67,7 +80,7 @@ else if ( $_SESSION['user_role'] === "user")
 {
     if($proposal_mode === "OPEN")
     {
-        if ($current_status != 8 && $current_status != 9 && $current_status != 10  && $current_status != 12)
+        if ($current_status != 1 && $current_status != 8 && $current_status != 9 && $current_status != 10  && $current_status != 12)
         {
             $allow_edit = "EDIT";
         }
@@ -171,7 +184,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             }
         }
     }
-
+    
     // Handle file uploads
     if (isset($_FILES['files']) && $proposal_id) {
         
@@ -206,7 +219,7 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
 
     $_SESSION['alert_message'] = "Proposal saved successfully!";
     $_SESSION['alert_type'] = "success";
-    //header("Location: proposals.php");
+    header("Location: proposal.php");
     exit;
 }
 
@@ -415,7 +428,7 @@ mysqli_close($conn);
    <!-- Submit Button -->
     <div class="mt-4 text-end" style="position: fixed; z-index:999; bottom:0px; right:0px; background-color:#fff; width:100%;">
         <!-- Status Dropdown -->
-        <select id="statusDropdown" name="proposal_status" class="form-select d-inline-block w-auto me-2 <?php echo $is_disabled_class; ?>">
+        <select id="statusDropdown" name="proposal_status" class="form-select d-inline-block w-auto me-2 <?php echo $is_disabled_class; ?>" onchange="toggleSubmitButton()">
             <option value="" disabled selected>-- Select Status --</option>
             <?php foreach ($statuses as $status): ?>
                 <option value="<?= htmlspecialchars($status['status_id']) ?>"><?= htmlspecialchars($status['status_name']) ?></option>
@@ -423,7 +436,7 @@ mysqli_close($conn);
         </select>
 
         <!-- Submit Button -->
-        <button type="button" value="submit"  style="top:10px; position:relative" onclick="setAction()" class="btn btn-success <?php echo $is_disabled_class; ?>">
+        <button type="submit" id="submitBtn" style="top:10px; position:relative" onclick="setAction()" class="btn btn-success <?php echo $is_disabled_class; ?>" disabled>
             <i class="fas fa-paper-plane"></i> Submit Proposal
         </button>
 
@@ -646,14 +659,6 @@ function handleFileSelect(categoryId, input) {
 
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
-
-        // **File Size Validation**
-        if (file.size > maxFileSize) {
-            showAlert(`File "${file.name}" exceeds the maximum size limit of ${maxFileSize / (1024 * 1024)} MB.`);
-
-            continue; // Skip this file
-        }
-
         const fileDiv = document.createElement('div');
         fileDiv.classList.add('file-preview');
 
@@ -694,6 +699,8 @@ function handleFileSelect(categoryId, input) {
         previewContainer.appendChild(fileDiv);
         filesToUpload[categoryId].push(file);
     }
+
+    
 }
 // **Function to Show Bootstrap Alert and Auto-Hide After 5 Seconds**
 function showAlert(message) {
@@ -852,19 +859,7 @@ document.getElementById('closeModal').onclick = function() {
 };
 
 function setAction(value) {
-    var statusDropdown = document.getElementById('statusDropdown');
-    var selectedStatus = statusDropdown.value;
-
-    // Check if a valid status is selected (not the default "-- Select Status --")
-    if (!selectedStatus) {
-        alert("Please select a status before submitting the proposal.");
-        return false; // Prevent form submission
-    }
-    else
-    {
         document.getElementById('actionField').value = value; // Set hidden input value
-        document.getElementById('uploadForm').submit(); 
-    }
 }
 function syncHiddenField(selectElement) {
         let hiddenField = document.getElementById('hidden_agent_request_number');
@@ -872,6 +867,20 @@ function syncHiddenField(selectElement) {
             hiddenField.value = selectElement.value;
         }
     }
+    
+    function toggleSubmitButton() {
+    var statusDropdown = document.getElementById('statusDropdown');
+    var submitBtn = document.getElementById('submitBtn');
+    
+    // Check if a valid status is selected (not the default "-- Select Status --")
+    if (statusDropdown.value) {
+        // Enable the submit button if a status is selected
+        submitBtn.disabled = false;
+    } else {
+        // Keep the submit button disabled if no status is selected
+        submitBtn.disabled = true;
+    }
+}
 </script>
 <style>
     .disabled-div {

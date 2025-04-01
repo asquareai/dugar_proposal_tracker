@@ -263,8 +263,14 @@ if ($row['session_token'] !== $_SESSION['session_token']) {
     <!-- Sidebar -->
     <div class="sidebar" id="sidebar">
         <a href="#" onclick="loadPage('proposal.php')" data-page="proposal"><i class="fa fa-home"></i> <span>Proposals</span></a>
-        <a href="#" onclick="loadPage('analytics.php')" data-page="analytics"><i class="fa fa-chart-line"></i> <span>Reports</span></a>
-        <a href="#" onclick="loadPage('settings.php')" data-page="settings"><i class="fa fa-cog"></i> <span>Settings</span></a>
+        <a href="#" onclick="loadPage('report_landing_page.php')" data-page="analytics"><i class="fa fa-chart-line"></i> <span>Reports</span></a>
+        <a href="#" onclick="loadPage('user_management.php')" data-page="settings">
+            <i class="fa fa-users"></i> <span>User Management</span>
+        </a>
+        <a href="#" onclick="loadPage('change_password.php')" data-page="settings">
+            <i class="fa fa-key"></i> <span>Change Password</span>
+        </a>
+
         <a href="logout.php"><i class="fa fa-sign-out-alt"></i> <span>Logout</span></a>
     </div>
 

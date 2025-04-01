@@ -33,7 +33,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $sql_update_proposal = "UPDATE proposals SET 
         status = '$status', 
         reject_reason = '$reject_reason', 
-        category = '$category'
+        category = '$category',
+        approved_on = now(),
         WHERE proposal_id = '$proposal_id'";
 
     if (mysqli_query($conn, $sql_update_proposal)) {
@@ -303,7 +304,7 @@ echo "<script>const proposalDocuments = " . json_encode($proposal_documents) . "
                         <!-- Show to Client Checkbox -->
                         <div class="form-check mt-2">
                             <input class="form-check-input" type="checkbox" id="show_to_client" name="show_to_client">
-                            <label class="form-check-label" for="show_to_client">Show to Client</label>
+                            <label class="form-check-label" for="show_to_client">Show to Agent</label>
                         </div>
                     </div>
                 </div>
