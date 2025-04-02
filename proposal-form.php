@@ -652,6 +652,7 @@ const maxFileSize = <?php echo $maxFileSize; ?>; // Get from PHP
 function handleFileSelect(categoryId, input) {
     const files = input.files;
     const previewContainer = document.getElementById(`${categoryId}-preview`);
+    const alertContainer = document.getElementById("alert-container");
 
     if (!filesToUpload[categoryId]) {
         filesToUpload[categoryId] = [];
@@ -659,6 +660,13 @@ function handleFileSelect(categoryId, input) {
 
     for (let i = 0; i < files.length; i++) {
         const file = files[i];
+
+        // ✅ File Size Validation
+        if (file.size > maxFileSize) {
+            showAlert(`🚫 File "${file.name}" exceeds the maximum size of ${maxFileSize / (1024 * 1024)}MB.`, "danger");
+            continue; // Skip this file
+        }
+
         const fileDiv = document.createElement('div');
         fileDiv.classList.add('file-preview');
 
@@ -689,7 +697,7 @@ function handleFileSelect(categoryId, input) {
         removeBtn.innerHTML = '<i class="fas fa-trash"></i> Remove';
         removeBtn.onclick = function () {
             let hfDeletedDocuments = document.getElementById("hf_deleted_documents");
-            hfDeletedDocuments.value = doc.file_path + ",";
+            hfDeletedDocuments.value = file.file_path + ",";
             fileDiv.remove();
             const index = filesToUpload[categoryId].indexOf(file);
             if (index > -1) filesToUpload[categoryId].splice(index, 1);
@@ -699,8 +707,6 @@ function handleFileSelect(categoryId, input) {
         previewContainer.appendChild(fileDiv);
         filesToUpload[categoryId].push(file);
     }
-
-    
 }
 // **Function to Show Bootstrap Alert and Auto-Hide After 5 Seconds**
 function showAlert(message) {
@@ -812,7 +818,7 @@ documentCategories.forEach(category => {
                     document.getElementById('alert_flag').value = '1';
                     document.getElementById('alert_message').value = 'Saved Successfully';
 
-                    location.href="proposal.php?status_code=1024&submit_type=${buttonValue}";
+                    location.href="proposal.php?status_code=1024";
                 } else {
                     alert('Error uploading files!');
                 }

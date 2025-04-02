@@ -321,12 +321,12 @@ if ($row['session_token'] !== $_SESSION['session_token']) {
         }
 
         // Restore active menu from local storage when the page reloads
-        window.onload = function () {
-            let savedPage = localStorage.getItem("activeMenu");
-            if (savedPage) {
-                loadPage(savedPage);
-            }
-        };
+        // window.onload = function () {
+        //     let savedPage = localStorage.getItem("activeMenu");
+        //     if (savedPage) {
+        //         loadPage(savedPage);
+        //     }
+        // };
 
     </script>
 </body>

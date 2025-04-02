@@ -22,6 +22,8 @@ function generateToken() {
 }
 
 
+$token="";
+$full_name="";
 
 // Handle actions like add, edit, or inactive status update
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -53,33 +55,13 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     } elseif (isset($_POST['generate_token'])) {
         // Generate password reset token
         $user_id = $_POST['user_id'];
+        $full_name = mysqli_real_escape_string($conn, $_POST['full_name']);
         $token = generateToken();
         $update_token_query = "UPDATE users SET password_reset_token = '$token' WHERE id = '$user_id'";
         mysqli_query($conn, $update_token_query);
         
         // Copy token to clipboard functionality will be handled via JS
-      echo "<script>
-    // Show the alert with the token message
-    alert('Password reset token generated successfully.');
-
-    // Create a temporary input field to hold the token
-    var tempInput = document.createElement('input');
-    tempInput.value = '$token'; // Set the value to the token
-    document.body.appendChild(tempInput);
-    
-    // Select the input field content
-    tempInput.select();
-    tempInput.setSelectionRange(0, 99999); // For mobile devices
-    
-    // Copy the content to the clipboard
-    document.execCommand('copy');
-    
-    // Remove the temporary input field after copying
-    
-    
-    // Notify the user that the token has been copied to the clipboard
-    alert('Password reset token has been copied to the clipboard!');
-</script>";
+      
     }
 }
 // Fetch all users from the database
@@ -94,7 +76,7 @@ $result = mysqli_query($conn, $query);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Management</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
+
     <script>
         // Function to copy token to clipboard
         function copyToClipboard(token) {
@@ -141,6 +123,28 @@ $result = mysqli_query($conn, $query);
         
         <!-- Users Table -->
         <h4>All Users</h4>
+
+        <?php if (!empty($token)) : ?>
+            <div class="alert alert-info d-flex justify-content-between align-items-center">
+                <span><strong>Token:</strong> <span id="tokenText"><?= htmlspecialchars($token) ?></span></span>
+                <button class="btn btn-sm btn-primary" onclick="copyToClipboard()">Copy Token</button>
+            </div>
+            <p class="text-secondary fw-bold">Copy this token and share it with the user <span style=color:blue> <?php echo $full_name; ?></span> to reset their password.</p>
+
+            <script>
+            function copyToClipboard() {
+                var token = document.getElementById("tokenText").innerText;
+                
+                navigator.clipboard.writeText(token).then(function() {
+                    alert("Token copied to clipboard successfully!");
+                }).catch(function(err) {
+                    console.error("Failed to copy token:", err);
+                    alert("Could not copy token. Please copy manually.");
+                });
+            }
+            </script>
+        <?php endif; ?>
+
         <table class="table table-bordered">
             <thead>
                 <tr>
@@ -175,6 +179,7 @@ $result = mysqli_query($conn, $query);
                             <!-- Generate Reset Token Button -->
                             <form action="" method="POST" class="d-inline">
                                 <input type="hidden" name="user_id" value="<?= $user['id'] ?>">
+                                <input type="hidden" name="full_name" value="<?= $user['full_name'] ?>">
                                 <button type="submit" name="generate_token" class="btn btn-info btn-sm">Generate Token</button>
                             </form>
                         </td>

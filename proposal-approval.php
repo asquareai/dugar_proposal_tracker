@@ -48,7 +48,9 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
 
             if (mysqli_query($conn, $sql_insert_comment)) {
                 // Comment inserted successfully
-                echo "Proposal and comment updated successfully!";
+                echo "Proposal and comment updated successfully! <a href='proposal.php'>Go Back</a>";
+                header("Location: proposal.php");
+                exit(); // Ensure no further code is executed after the redirect
             } else {
                 // Handle comment insert error
                 echo "Error inserting comment: " . mysqli_error($conn);

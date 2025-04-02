@@ -124,6 +124,9 @@ if (!empty($_SESSION['multi_login_detected'])) {
         <button type="submit" class="btn btn-primary w-100">
             <i class="fa-solid fa-sign-in-alt"></i> Login
         </button>
+        <div class="text-center mt-3">
+            <a href="change_password_with_token.php">Forgot Password?</a>
+        </div>
     </form>
 </div>
 <!-- Loader -->
