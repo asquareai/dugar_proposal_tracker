@@ -24,7 +24,8 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $sql_update_proposal = "UPDATE proposals SET 
         status = '$status', 
         reject_reason = '$reject_reason', 
-        approved_category = '$category'
+        approved_category = '$category',
+        approved_on = now()
         WHERE id = '$proposal_id'";
 
     if (mysqli_query($conn, $sql_update_proposal)) {

@@ -280,7 +280,7 @@ if ($row['session_token'] !== $_SESSION['session_token']) {
         <div class="content" id="content" >
             <iframe id="contentFrame" class="frame-set" src="proposal.php" frameborder="0" width="100%" height="100%"></iframe>
         </div>
-        <span style="position:fixed;bottom:4px;left:calc(100% - 220px);font-size:0.8em;">© Copyright www.asquareai.com
+        <!-- <span style="position:fixed;bottom:4px;left:calc(100% - 220px);font-size:0.8em;">© Copyright www.asquareai.com -->
         </span>
 
 

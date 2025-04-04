@@ -24,7 +24,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['hf_proposal_id']) && i
     
     // Ensure only admins can perform this action
     if ($_SESSION['user_role'] === "admin") {
-        $sql = "UPDATE proposals SET allocated_to_user_id = '$allocated_user_id' WHERE id = '$proposal_id'";
+        $sql = "UPDATE proposals SET allocated_to_user_id = '$allocated_user_id', allocated_on = now() WHERE id = '$proposal_id'";
         
         if ($stmt = $conn->prepare($sql)) {
             
@@ -57,10 +57,10 @@ if (isset($_SESSION['user_role'])) {
     if ($_SESSION['user_role'] === "sales") {
         // Sales users see only their records
         $filterContext = " and p.ar_user_id = " . (int) $_SESSION['user_id'];
-    } elseif ($_SESSION['user_role'] === "user") {
-        // Normal users see only records allocated to them
-        $filterContext = " and p.allocated_to_user_id = " . (int) $_SESSION['user_id'];
-    }
+    } //elseif ($_SESSION['user_role'] === "user") {
+    //     // Normal users see only records allocated to them
+    //     $filterContext = " and p.allocated_to_user_id = " . (int) $_SESSION['user_id'];
+    // }
     
 }
 // Get selected status from query string (default to 'In Progress' if not set)
@@ -68,14 +68,16 @@ $selectedStatus = isset($_GET['status']) ? $_GET['status'] : 'In Progress';
 
 // Mapping of status for filtering
 $statusMapping = [
-    'In Progress' => [1,2, 3, 4, 5, 6, 7, 8, 11],
+    'New' => [1,2],
+    'In Progress' => [3, 4, 5, 6, 7, 8, 11],
     'Hold' => [12],
     'Approved' => [9],
-    'Rejected' => [10]
+    'Rejected' => [10],
+    'Cancelled' => [13]
 ];
 
 // Get the status ID array for the selected status
-$statusIds = isset($statusMapping[$selectedStatus]) ? $statusMapping[$selectedStatus] : [2, 3, 4, 5, 6, 7, 8, 11];
+$statusIds = isset($statusMapping[$selectedStatus]) ? $statusMapping[$selectedStatus] : [1,2, 3, 4, 5, 6, 7, 8, 11,12,13];
 
 // Include 'Allocated To' field only for admin users
 $allocatedToField = "";
@@ -128,11 +130,13 @@ $isSales = ($_SESSION['user_role'] === 'sales') ? 1 : 0;
 // SQL query to count records based on status mapping
 $sql = "
     SELECT 
-        CASE 
-            WHEN status IN (1,2, 3, 4, 5, 6, 7, 8, 11) THEN 'In Progress'
+        CASE
+            WHEN status IN (1, 2) THEN 'New' 
+            WHEN status IN (3, 4, 5, 6, 7, 8, 11) THEN 'In Progress'
             WHEN status = 9 THEN 'Approved'
             WHEN status = 10 THEN 'Rejected'
             WHEN status = 12 THEN 'Hold'
+            WHEN status = 13 THEN 'Cancelled'
             ELSE 'Other' 
         END AS category,
         COUNT(*) as count 
@@ -144,10 +148,12 @@ $statuscoountresult = $conn->query($sql);
 
 // Initialize counts
 $counts = [
+    "New" => 0,
     "In Progress" => 0,
     "Hold" => 0,
     "Approved" => 0,
-    "Rejected" => 0
+    "Rejected" => 0,
+    "Cancelled" => 0
 ];
 
 // Assign counts dynamically
@@ -168,8 +174,10 @@ while ($row = $statuscoountresult->fetch_assoc()) {
 <link rel="stylesheet" href="assets/css/proposal.css">
 <link rel="stylesheet" href="assets/css/global.css">
 <link rel="stylesheet" href="assets/css/loader.css">
-
-
+<div style="width:100%; text-align:center">
+<img src="assets/images/logo.png" style="width:250px;">
+<h3>Loan Proposal Management</h3>
+</div>
 <div class="container-fluid mt-4"> <!-- Full width -->
     <div class="d-flex flex-wrap gap-2 mb-3">
         <?php if ($_SESSION['user_role'] !== "approver"): ?>
@@ -177,54 +185,77 @@ while ($row = $statuscoountresult->fetch_assoc()) {
         <?php endif; ?>
     </div>
     <div class="row">
-        <div class="col-md-3">
-            <div class="card border-warning shadow-lg   <?php if ($selectedStatus == "In Progress"):?>active-category  <?php endif; ?>   position-relative">
-                <div class="card-header bg-warning text-white fw-bold d-flex justify-content-between align-items-center">
-                    In Progress <?php if ($selectedStatus == "In Progress"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['In Progress']; ?></span></p>
-                    <button class="btn btn-outline-warning btn-sm" onclick="filterByStatus('In Progress')">View Details</button>
-                </div>
+    <div class="col-md-2">
+        <div class="card border-primary shadow-lg <?php if ($selectedStatus == "New"):?>active-category<?php endif; ?> position-relative">
+            <div class="card-header bg-primary text-white fw-bold d-flex justify-content-between align-items-center">
+                New <?php if ($selectedStatus == "New"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
             </div>
-        </div>
-
-        <div class="col-md-3">
-        <div class="card border-secondary shadow-lg   <?php if ($selectedStatus == "Hold"):?>active-category  <?php endif; ?>   position-relative">
-                <div class="card-header bg-secondary text-white fw-bold d-flex justify-content-between align-items-center">
-                    Hold <?php if ($selectedStatus == "Hold"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['Hold']; ?></span></p>
-                    <button class="btn btn-outline-secondary btn-sm" onclick="filterByStatus('Hold')">View Details</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-        <div class="card border-success shadow-lg   <?php if ($selectedStatus == "Approved"):?>active-category  <?php endif; ?>   position-relative">
-                <div class="card-header bg-success text-white fw-bold d-flex justify-content-between align-items-center">
-                    Approved <?php if ($selectedStatus == "Approved"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['Approved']; ?></span></p>
-                    <button class="btn btn-outline-success btn-sm" onclick="filterByStatus('Approved')">View Details</button>
-                </div>
-            </div>
-        </div>
-
-        <div class="col-md-3">
-        <div class="card border-danger shadow-lg   <?php if ($selectedStatus == "Rejected"):?>active-category  <?php endif; ?>   position-relative">
-                <div class="card-header bg-danger text-white fw-bold d-flex justify-content-between align-items-center">
-                    Rejected <?php if ($selectedStatus == "Rejected"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
-                </div>
-                <div class="card-body">
-                    <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['Rejected']; ?></span></p>
-                    <button class="btn btn-outline-danger btn-sm" onclick="filterByStatus('Rejected')">View Details</button>
-                </div>
+            <div class="card-body">
+                <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['New']; ?></span></p>
+                <button class="btn btn-outline-primary btn-sm" onclick="filterByStatus('New')">View Details</button>
             </div>
         </div>
     </div>
+
+    <div class="col-md-2">
+        <div class="card border-warning shadow-lg <?php if ($selectedStatus == "In Progress"):?>active-category<?php endif; ?> position-relative">
+            <div class="card-header bg-warning text-white fw-bold d-flex justify-content-between align-items-center">
+                In Progress <?php if ($selectedStatus == "In Progress"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['In Progress']; ?></span></p>
+                <button class="btn btn-outline-warning btn-sm" onclick="filterByStatus('In Progress')">View Details</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-success shadow-lg <?php if ($selectedStatus == "Approved"):?>active-category<?php endif; ?> position-relative">
+            <div class="card-header bg-success text-white fw-bold d-flex justify-content-between align-items-center">
+                Approved <?php if ($selectedStatus == "Approved"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['Approved']; ?></span></p>
+                <button class="btn btn-outline-success btn-sm" onclick="filterByStatus('Approved')">View Details</button>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-2">
+        <div class="card border-secondary shadow-lg <?php if ($selectedStatus == "Hold"):?>active-category<?php endif; ?> position-relative">
+            <div class="card-header bg-secondary text-white fw-bold d-flex justify-content-between align-items-center">
+                Hold <?php if ($selectedStatus == "Hold"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['Hold']; ?></span></p>
+                <button class="btn btn-outline-secondary btn-sm" onclick="filterByStatus('Hold')">View Details</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card border-danger shadow-lg <?php if ($selectedStatus == "Rejected"):?>active-category<?php endif; ?> position-relative">
+            <div class="card-header bg-danger text-white fw-bold d-flex justify-content-between align-items-center">
+                Rejected <?php if ($selectedStatus == "Rejected"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['Rejected']; ?></span></p>
+                <button class="btn btn-outline-danger btn-sm" onclick="filterByStatus('Rejected')">View Details</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-2">
+        <div class="card border-dark shadow-lg <?php if ($selectedStatus == "Cancelled"):?>active-category<?php endif; ?> position-relative">
+            <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center">
+                Cancelled <?php if ($selectedStatus == "Cancelled"): ?><span class="selected-icon">✔</span>  <?php endif; ?>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Total: <span class="fw-bold"><?php echo $counts['Cancelled']; ?></span></p>
+                <button class="btn btn-outline-dark btn-sm" onclick="filterByStatus('Cancelled')">View Details</button>
+            </div>
+        </div>
+    </div>
+</div>
+
     <?php if (mysqli_num_rows($result) > 0) { ?>
         <div class="table-responsive w-100" style="max-width: 100%;">  <!-- Full width -->
             <table id="proposalTable" class="table table-hover table-striped table-bordered nowrap" style="width:100%">
@@ -387,19 +418,19 @@ while ($row = $statuscoountresult->fetch_assoc()) {
             let allocatedUserId = document.getElementById("allocatedUser").value;
             document.getElementById("hf_allocated_user_id").value = allocatedUserId;
             
-            fetch("allocate_proposal.php", {
-                method: "POST",
-                headers: { "Content-Type": "application/x-www-form-urlencoded" },
-                body: `proposal_id=${proposalId}&allocated_user_id=${allocatedUserId}`
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    location.reload();
-                } else {
-                    alert("Error: " + data.message);
-                }
-            });
+            // fetch("allocate_proposal.php", {
+            //     method: "POST",
+            //     headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            //     body: `proposal_id=${proposalId}&allocated_user_id=${allocatedUserId}`
+            // })
+            // .then(response => response.json())
+            // .then(data => {
+            //     if (data.success) {
+            //         location.reload();
+            //     } else {
+            //         alert("Error: " + data.message);
+            //     }
+            // });
         });
     });
     function openProposal(proposalId) {

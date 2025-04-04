@@ -34,7 +34,10 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['user_role'] = $row['role'];
             $_SESSION['user_id'] = $row['id'];
             $_SESSION['user_prefix'] = $row['prefix'];
-            header("Location: dashboard.php");
+            if($row['role'] == 'sales')
+                header("Location: proposal.php");
+            else
+                header("Location: dashboard.php");
             exit();
         } else {
             $error = "Invalid username or password!";
@@ -74,7 +77,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     <link rel="stylesheet" href="assets/css/loader.css">
 
 </head>
-<body>
+<body style="position: relative; margin: 0;">
+    <div style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+                background: url('assets/images/bg.png') no-repeat center center fixed; 
+                background-size: cover; opacity: 0.3; z-index: -1;">
+    </div>
 
 <!-- Logo Outside the Login Box -->
 <div class="logo">
@@ -107,7 +114,7 @@ if (!empty($_SESSION['multi_login_detected'])) {
 
 <!-- Login Box -->
 <div class="login-container">
-    <h3 class="mb-4">Proposal Tracker</h3>
+    <h3 class="mb-4">Proposal Tracker 1.0</h3>
     <form method="POST" action="" id="loginForm">
         <div class="mb-3 input-group">
             <span class="input-group-text"><i class="fa-solid fa-user"></i></span>

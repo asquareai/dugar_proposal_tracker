@@ -5,14 +5,14 @@ include('config.php');
 // Query to get client proposal summary data
 $query = "
 SELECT 
-    p.borrower_name AS 'Client Name',
+    u.full_name AS 'Client Name',
     COUNT(CASE WHEN p.status not in(9,10) THEN 1 END) AS 'Progress',
     COUNT(CASE WHEN p.status = 9 THEN 1 END) AS 'Approved',
     COUNT(CASE WHEN p.status = 10 THEN 1 END) AS 'Rejected',
     COUNT(CASE WHEN p.status = 12 THEN 1 END) AS 'Hold'
-FROM proposals p
-GROUP BY p.borrower_name
-ORDER BY p.borrower_name";
+FROM proposals p join users u on p.ar_user_id = u.id
+GROUP BY u.full_name
+ORDER BY u.full_name";
 
 // Execute the query
 $result = mysqli_query($conn, $query);

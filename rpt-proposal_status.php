@@ -2,7 +2,21 @@
 // Include database configuration file
 include 'config.php'; // Assuming this is your database connection file
 
-// Query to fetch proposal details including status, user, and allocation
+// Capture the From and To dates from the GET parameters
+$fromDate = isset($_GET['fromDate']) ? $_GET['fromDate'] : '';
+$toDate = isset($_GET['toDate']) ? $_GET['toDate'] : '';
+
+// Add WHERE condition for date filter
+$dateCondition = '';
+if ($fromDate && $toDate) {
+    $dateCondition = "AND p.created_at BETWEEN '$fromDate' AND '$toDate'";
+} elseif ($fromDate) {
+    $dateCondition = "AND p.created_at >= '$fromDate'";
+} elseif ($toDate) {
+    $dateCondition = "AND p.created_at <= '$toDate'";
+}
+
+// Modified query to include the date range condition
 $query = "
     SELECT 
         p.id, 
@@ -21,7 +35,10 @@ $query = "
     INNER JOIN proposal_status_master ps ON p.status = ps.status_id
     LEFT JOIN users u3 ON p.ar_user_id = u3.id
     LEFT JOIN users u4 ON p.allocated_to_user_id = u4.id
+    WHERE 1=1
+    $dateCondition
 ";
+
 $result = mysqli_query($conn, $query);
 ?>
 
@@ -67,7 +84,12 @@ $result = mysqli_query($conn, $query);
 
         <!-- Filter Section -->
         <div class="filter-input">
-            <input type="text" id="filterInput" class="form-control" placeholder="Search for proposals..." onkeyup="filterTable()">
+            <label for="fromDate">From Date:</label>
+            <input type="date" id="fromDate" class="form-control" value="<?php echo $fromDate; ?>" onchange="applyDateFilter()">
+        </div>
+        <div class="filter-input">
+            <label for="toDate">To Date:</label>
+            <input type="date" id="toDate" class="form-control" value="<?php echo $toDate; ?>" onchange="applyDateFilter()">
         </div>
 
         <!-- Export Buttons -->
@@ -114,28 +136,25 @@ $result = mysqli_query($conn, $query);
         </div>
     </div>
 
-    <!-- JavaScript for table search and export functions -->
+    <!-- JavaScript for table search, export functions, and date filtering -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // Function to filter the table
-        function filterTable() {
-            const filter = document.getElementById("filterInput").value.toUpperCase();
-            const table = document.getElementById("proposalTable");
-            const rows = table.getElementsByTagName("tr");
-            
-            for (let i = 1; i < rows.length; i++) {
-                const cells = rows[i].getElementsByTagName("td");
-                let match = false;
-                for (let j = 0; j < cells.length; j++) {
-                    if (cells[j]) {
-                        const cellValue = cells[j].textContent || cells[j].innerText;
-                        if (cellValue.toUpperCase().indexOf(filter) > -1) {
-                            match = true;
-                        }
-                    }
-                }
-                rows[i].style.display = match ? "" : "none";
+        // Function to apply date filter
+        function applyDateFilter() {
+            const fromDate = document.getElementById("fromDate").value;
+            const toDate = document.getElementById("toDate").value;
+
+            // Construct the new URL with date parameters
+            const url = new URL(window.location.href);
+            if (fromDate) {
+                url.searchParams.set('fromDate', fromDate);
             }
+            if (toDate) {
+                url.searchParams.set('toDate', toDate);
+            }
+
+            // Reload the page with the new parameters
+            window.location.href = url.toString();
         }
 
         // Function to export to Excel
@@ -167,8 +186,6 @@ $result = mysqli_query($conn, $query);
             link.download = 'proposal_status_report.csv';
             link.click();
         }
-
-
     </script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.11/jspdf.plugin.autotable.min.js"></script>

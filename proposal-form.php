@@ -10,6 +10,10 @@ $status_description="";
 $proposal_documents_json = json_encode(null, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); 
 if (isset($_GET['id']) && !empty($_GET['id'])) {
     $proposal_id = intval($_GET['id']); // Get proposal ID from query string
+
+    $query = "update proposals set allocated_to_user_id = '" . $_SESSION['user_id'] . "', status=3  WHERE id='$proposal_id'";
+    $result = mysqli_query($conn, $query);
+
     $proposal_mode = "OPEN"; // Change mode to EDIT
     $query = "SELECT *, s.status_name, s.description FROM proposals p join proposal_status_master s on p.status = s.status_id  WHERE id='$proposal_id'";
     $result = mysqli_query($conn, $query);
@@ -90,7 +94,7 @@ else if ( $_SESSION['user_role'] === "user")
         }
     }
     
-        $allowed_statuses = ['Under Review', 'Documents Requested', 'Sent for Approval']; 
+        $allowed_statuses = ['Under Review', 'Documents Requested', 'Sent for Approval', 'Cancelled']; 
 }
 else if ( $_SESSION['user_role'] === "approver")
 {
@@ -106,12 +110,18 @@ $placeholders = implode(',', array_fill(0, count($allowed_statuses), '?'));
 // Construct query
 $query = "SELECT status_id, status_name FROM proposal_status_master WHERE status_name IN ($placeholders)";
 
+
 // Prepare the statement
 $stmt = $conn->prepare($query);
 
 // Bind parameters dynamically
 $types = str_repeat('s', count($allowed_statuses)); // 's' for string parameters
 $stmt->bind_param($types, ...$allowed_statuses);
+
+// $final_query = vsprintf(str_replace("?", "'%s'", $query), $allowed_statuses);
+
+// // Print the final query
+// echo "Final query: " . $final_query . "\n";
 
 // Execute query
 $stmt->execute();
@@ -212,8 +222,8 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     // Save comment if any
     
     if (!empty($comments) && $proposal_id) {
-        $comment_sql = "INSERT INTO proposal_comments (proposal_id, comment, created_at, user_id) 
-                        VALUES ('$proposal_id', '$comments', NOW(), '$created_by')";
+        $comment_sql = "INSERT INTO proposal_comments (proposal_id, comment, created_at, user_id, show_to_client) 
+                        VALUES ('$proposal_id', '$comments', NOW(), '$created_by', 1)";
         mysqli_query($conn, $comment_sql);
     }
 
