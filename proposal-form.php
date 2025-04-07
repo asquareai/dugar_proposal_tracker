@@ -11,7 +11,7 @@ $proposal_documents_json = json_encode(null, JSON_HEX_TAG | JSON_HEX_APOS | JSON
 if (isset($_GET['id']) && !empty($_GET['id'])) {
     $proposal_id = intval($_GET['id']); // Get proposal ID from query string
 
-    $query = "update proposals set allocated_to_user_id = '" . $_SESSION['user_id'] . "', status=3  WHERE id='$proposal_id'";
+    $query = "update proposals set allocated_to_user_id = '" . $_SESSION['user_id'] . "', status=3  WHERE id='$proposal_id' and status in(1,2)";
     $result = mysqli_query($conn, $query);
 
     $proposal_mode = "OPEN"; // Change mode to EDIT
@@ -69,10 +69,15 @@ if ( $_SESSION['user_role'] === "sales")
         $allowed_statuses = ['Draft', 'Submitted for Review']; 
     else if($proposal_mode === "OPEN")
     {
-        if ($current_status == 1 || $current_status == 4 || $current_status == 5 )
+        if ($current_status == 1)
         {
             $allow_edit = "EDIT";
             $allowed_statuses = ['Draft', 'Submitted for Review']; 
+        }
+        else if ($current_status == 4 || $current_status == 5 )
+        {
+            $allow_edit = "EDIT";
+            $allowed_statuses = ['Resubmitted']; 
         }
         else
         {
@@ -143,6 +148,21 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $deleted_files = isset($_POST['hf_deleted_documents']) ? explode(',', $_POST['hf_deleted_documents']) : [];
 
     $proposal_status = isset($_POST['proposal_status']) ? (int)$_POST['proposal_status'] : null;
+    // Create a mapping for fields that have different names in the form and database
+        $field_mapping = [
+            'email_id' => 'email',
+            'borrower_name' => 'borrower_name',
+            'initials' => 'initials',
+            'mobile_number' => 'mobile_number',
+            'city' => 'city',
+            'vehicle_name' => 'vehicle_name',
+            'vehicle_model' => 'model',
+            'loan_amount' => 'loan_amount',
+            'coapplicant_name' => 'co_applicant_name',
+            'coapplicant_mobile' => 'co_applicant_mobile',
+            'coapplicant_relationship' => 'co_applicant_relationship',
+            'proposal_status' => 'status'
+        ];
     // Sanitize inputs
     $borrower_name = mysqli_real_escape_string($conn, $_POST['borrower_name']);
     $initials = mysqli_real_escape_string($conn, $_POST['initials']);
@@ -158,7 +178,6 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
     $co_mobile = mysqli_real_escape_string($conn, $_POST['coapplicant_mobile']);
     $co_relationship = mysqli_real_escape_string($conn, $_POST['coapplicant_relationship']);
     $created_by = $_SESSION['user_id']; // Assuming user is logged in
-
     // INSERT or UPDATE proposal
     if ($proposal_mode === "NEW") {
         $sql = "INSERT INTO proposals 
@@ -170,6 +189,53 @@ if ($_SERVER["REQUEST_METHOD"] === "POST") {
             $proposal_id = mysqli_insert_id($conn); // Get last inserted proposal ID
         }
     } elseif ($proposal_mode === "OPEN" && $proposal_id) {
+         // Fetch the current proposal data to log old values
+            $select_sql = "SELECT * FROM proposals WHERE id = '$proposal_id'";
+            $result = mysqli_query($conn, $select_sql);
+            
+            if ($result && mysqli_num_rows($result) > 0) {
+                $existing_data = mysqli_fetch_assoc($result);
+
+                // Step 1: Insert the header record first (to get the header ID)
+                $header_sql = "INSERT INTO audit_logs_header (proposal_id, action_type, changed_by) 
+                VALUES ('$proposal_id', 'UPDATE', '$created_by')";
+                if (mysqli_query($conn, $header_sql)) {
+                $audit_header_id = mysqli_insert_id($conn);  // Get the ID of the inserted header
+                } else {
+                // Handle error if header insertion fails
+                die('Error inserting audit log header: ' . mysqli_error($conn));
+                }
+
+                // Step 2: Initialize an array to hold modified fields for the header
+                $modified_fields = [];
+
+                foreach ($field_mapping as $form_field => $db_field) {
+                $new_value = isset($_POST[$form_field]) ? $_POST[$form_field] : ''; // Get the new value from POST
+
+                // Compare existing value and new value
+                if ($existing_data[$db_field] !== $new_value) {
+                // Log the change in file (for debugging purposes)
+                file_put_contents('log.txt', $existing_data[$db_field] . " - " . $new_value . "\n", FILE_APPEND);
+
+                // Insert the change into the audit_logs_details table
+                $log_sql = "INSERT INTO audit_logs_details (audit_header_id, field_name, old_value, new_value) 
+                    VALUES ('$audit_header_id', '$db_field', '" . mysqli_real_escape_string($conn, $existing_data[$db_field]) . "', '" . mysqli_real_escape_string($conn, $new_value) . "')";
+                mysqli_query($conn, $log_sql);
+
+                // Add this field to the list of modified fields
+                $modified_fields[] = $db_field;
+                }
+                }
+
+                // Step 3: Update the header with the modified fields
+                if (!empty($modified_fields)) {
+                $modified_fields_str = implode(',', $modified_fields); // Convert array to comma-separated string
+                $update_header_sql = "UPDATE audit_logs_header 
+                        SET modified_fields = '" . mysqli_real_escape_string($conn, $modified_fields_str) . "'
+                        WHERE id = '$audit_header_id'";
+                mysqli_query($conn, $update_header_sql);
+                }
+            }
         $sql = "UPDATE proposals 
                 SET borrower_name='$borrower_name', initials='$initials', mobile_number='$mobile_number',
                     email='$email_id', city='$city', vehicle_name='$vehicle_name', model='$model',

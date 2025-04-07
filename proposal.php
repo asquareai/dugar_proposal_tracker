@@ -69,7 +69,7 @@ $selectedStatus = isset($_GET['status']) ? $_GET['status'] : 'In Progress';
 // Mapping of status for filtering
 $statusMapping = [
     'New' => [1,2],
-    'In Progress' => [3, 4, 5, 6, 7, 8, 11],
+    'In Progress' => [3, 4, 5, 6, 7, 8, 11,14],
     'Hold' => [12],
     'Approved' => [9],
     'Rejected' => [10],
@@ -86,6 +86,10 @@ $joinAllocatedTo = "";
 if ($_SESSION['user_role'] === "admin") {
     $allocatedToField = ", COALESCE(u2.full_name, 'NOT ALLOCATED') AS 'Allocated To'"; // Show "NOT ALLOCATED" if NULL
     $joinAllocatedTo = " LEFT JOIN users u2 ON p.allocated_to_user_id = u2.id"; // Join users table to get name
+}
+if ($_SESSION['user_role'] === "user" and $selectedStatus != "New") {
+    $allocatedToField = ", COALESCE(u2.full_name, 'NOT ALLOCATED') AS 'Allocated To'"; // Show "NOT ALLOCATED" if NULL
+    $joinAllocatedTo = " JOIN users u2 ON p.allocated_to_user_id = u2.id and u2.id = " . $_SESSION['user_id']; // Join users table to get name
 }
 
 // Define the main status mapping
@@ -128,6 +132,8 @@ $allocation_users = mysqli_query($conn, $query);
 $isSales = ($_SESSION['user_role'] === 'sales') ? 1 : 0;
 
 // SQL query to count records based on status mapping
+if ($_SESSION['user_role'] === 'sales')
+{
 $sql = "
     SELECT 
         CASE
@@ -140,9 +146,46 @@ $sql = "
             ELSE 'Other' 
         END AS category,
         COUNT(*) as count 
-    FROM proposals 
-    GROUP BY category
-";
+    FROM proposals where ar_user_id = " . $_SESSION['user_id'] . " GROUP BY category ";
+}
+else if ($_SESSION['user_role'] === 'user') {
+    $sql = "
+        SELECT 
+            CASE
+                WHEN status IN (1, 2) THEN 'New' 
+                WHEN status IN (3, 4, 5, 6, 7, 8, 11) THEN 'In Progress'
+                WHEN status = 9 THEN 'Approved'
+                WHEN status = 10 THEN 'Rejected'
+                WHEN status = 12 THEN 'Hold'
+                WHEN status = 13 THEN 'Cancelled'
+                ELSE 'Other' 
+            END AS category,
+            COUNT(*) as count 
+        FROM proposals 
+        WHERE 
+            (status IN (1, 2)) 
+            OR 
+            (status NOT IN (1, 2) AND allocated_to_user_id = " . $_SESSION['user_id'] . ")
+        GROUP BY category
+    ";
+}
+
+else
+{
+    $sql = "
+    SELECT 
+        CASE
+            WHEN status IN (1, 2) THEN 'New' 
+            WHEN status IN (3, 4, 5, 6, 7, 8, 11) THEN 'In Progress'
+            WHEN status = 9 THEN 'Approved'
+            WHEN status = 10 THEN 'Rejected'
+            WHEN status = 12 THEN 'Hold'
+            WHEN status = 13 THEN 'Cancelled'
+            ELSE 'Other' 
+        END AS category,
+        COUNT(*) as count 
+    FROM proposals GROUP BY category ";
+}
 
 $statuscoountresult = $conn->query($sql);
 
@@ -177,6 +220,7 @@ while ($row = $statuscoountresult->fetch_assoc()) {
 <div style="width:100%; text-align:center">
 <img src="assets/images/logo.png" style="width:250px;">
 <h3>Loan Proposal Management</h3>
+<div><?php echo $_SESSION['user_fullname'] . " (" . $_SESSION['user_role'] . ")";?>
 </div>
 <div class="container-fluid mt-4"> <!-- Full width -->
     <div class="d-flex flex-wrap gap-2 mb-3">

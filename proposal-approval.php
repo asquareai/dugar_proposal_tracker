@@ -218,7 +218,7 @@ echo "<script>const proposalDocuments = " . json_encode($proposal_documents) . "
                     <div class="col-md-4">
                         <label for="approval_status" class="form-label fw-bold">Approval Action</label>
                         <select class="form-select" id="approval_status" name="status" required onchange="toggleReasonField()">
-                            <option value="">Select Action</option>
+                            <option value="">-- Select Action -- </option>
                             <?php
                             // Loop through $approval_statuses array and populate the dropdown
                             foreach ($approve_status as $status) {
