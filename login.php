@@ -35,7 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $_SESSION['user_id'] = $row['id'];
             $_SESSION['user_prefix'] = $row['prefix'];
             if($row['role'] == 'sales' || $row['role'] == 'user' )
-                header("Location: proposal.php");
+                header("Location: proposal.php?status=In Progress");
             else
                 header("Location: dashboard.php");
             exit();

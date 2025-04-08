@@ -523,6 +523,8 @@ while ($row = $statuscoountresult->fetch_assoc()) {
     }
     function filterByStatus(status) {
         // Redirect to the same page with the selected status in the URL
+        localStorage.setItem('selectedStatus', status); // Save to local storage
+
         window.location.href = window.location.pathname + '?status=' + encodeURIComponent(status);
     }
     
@@ -556,44 +558,72 @@ while ($row = $statuscoountresult->fetch_assoc()) {
 
 
 <script>
-    document.addEventListener("DOMContentLoaded", function () {
-        const params = new URLSearchParams(window.location.search);
-        const selectedStatus = params.get("status");
+document.addEventListener("DOMContentLoaded", function () {
+    let savedStatus = localStorage.getItem('selectedStatus');
 
-        if (selectedStatus) {
-            const buttons = document.querySelectorAll("#statusTabs button");
-            buttons.forEach(btn => {
-                if (btn.textContent.trim().toLowerCase() === selectedStatus.toLowerCase()) {
-                    btn.classList.add("active");
-                }
-            });
-        }
-    });
+    if (!savedStatus) {
+        savedStatus = "In Progress";
+        localStorage.setItem('selectedStatus', savedStatus);
+    }
 
-    function selectTab(button, status) {
-        const allTabs = document.querySelectorAll('.status-tab .tab-label');
-        allTabs.forEach(label => label.classList.add('d-none'));
+    const urlParams = new URLSearchParams(window.location.search);
+    const statusFromUrl = urlParams.get('status');
+    const activeStatus = statusFromUrl || savedStatus;
 
-        const label = button.querySelector('.tab-label');
+    if (!statusFromUrl) {
+        window.location.href = window.location.pathname + '?status=' + encodeURIComponent(savedStatus);
+        return;
+    }
+
+    // Highlight selected tab
+    const matchingBtn = document.querySelector(`.status-tab[data-status="${activeStatus}"]`);
+    if (matchingBtn) {
+        const label = matchingBtn.querySelector('.tab-label');
         if (label) label.classList.remove('d-none');
 
-        // Delay redirect slightly to show text before navigating
-        setTimeout(() => {
-            filterByStatus(status);
-        }, 200);
-        }
+        applyActiveStyle(matchingBtn, activeStatus);
+    }
+});
 
-        window.addEventListener('DOMContentLoaded', () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const statusFromUrl = urlParams.get('status');
+function selectTab(button, status) {
+    // Hide all labels
+    document.querySelectorAll('.status-tab .tab-label').forEach(label => label.classList.add('d-none'));
 
-        if (statusFromUrl) {
-            const matchingBtn = document.querySelector(`.status-tab[data-status="${statusFromUrl}"]`);
-            if (matchingBtn) {
-            const label = matchingBtn.querySelector('.tab-label');
-            if (label) label.classList.remove('d-none');
-            }
-        }
-        });
+    // Remove previous active styles
+    document.querySelectorAll('.status-tab').forEach(tab => {
+        tab.classList.remove('active-category', 'bg-primary', 'bg-success', 'bg-warning', 'bg-secondary', 'bg-danger', 'bg-dark', 'text-white');
+    });
 
+    // Show selected label + apply active style
+    const label = button.querySelector('.tab-label');
+    if (label) label.classList.remove('d-none');
+
+    applyActiveStyle(button, status);
+    localStorage.setItem('selectedStatus', status);
+
+    setTimeout(() => {
+        filterByStatus(status);
+    }, 200);
+}
+
+function applyActiveStyle(button, status) {
+    const statusColors = {
+        "New": "bg-primary",
+        "In Progress": "bg-warning",
+        "Approved": "bg-success",
+        "Hold": "bg-secondary",
+        "Rejected": "bg-danger",
+        "Cancelled": "bg-dark"
+    };
+
+    const bgClass = statusColors[status] || "bg-primary";
+
+    button.classList.add('active-category', bgClass, 'text-white');
+}
+
+function filterByStatus(status) {
+    window.location.href = window.location.pathname + '?status=' + encodeURIComponent(status);
+}
 </script>
+
+

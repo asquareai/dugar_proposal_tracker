@@ -335,7 +335,7 @@ mysqli_close($conn);
 </div>
 
     <div class="container mt-4">
-    <button type="button" class="close-fixed" onclick="window.location.href='proposal.php';">
+    <button type="button" class="close-fixed" >
         <i class="bi bi-x-circle"></i>
     </button>        
     <h4 class="mb-3">
