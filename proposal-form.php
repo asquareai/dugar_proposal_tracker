@@ -526,28 +526,49 @@ mysqli_close($conn);
     </div>
     </div>
     <!-- Modal to display enlarged content -->
-    <div id="previewModal" style="display:none;z-index:9999">
-        <div id="modalContent">
-            <span id="closeModal" style="cursor: pointer; font-size: 20px; color: red;">&times;</span>
-            <div id="modalPreviewContainer"></div>
-        </div>
+    <!-- Modal HTML -->
+    <!-- Modal Structure -->
+<div id="previewModal" class="modal" style="display: none; align-items: center; justify-content: center;">
+  <div class="modal-content" style="position: relative; background: white; padding: 20px; border-radius: 10px; max-width: 90%; max-height: 90vh; overflow: hidden;">
+
+    <!-- 🛠 Toolbar (now floating) -->
+    <div id="toolbar" style="
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      z-index: 1000;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 6px 10px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    ">
+      <button onclick="zoomIn()">🔍+</button>
+      <button onclick="zoomOut()">🔍−</button>
+      <button onclick="rotate()">🔄</button>
+      <button onclick="closeModal()">❌</button>
     </div>
-</body>
-<div id="loader" style="
-    display: none;
-    position: fixed;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.7);
-    color: white;
-    border-radius: 10px;
-    text-align: center;
-">Uploading...</div>
+
+    <!-- 📄 Content viewer -->
+    <div id="modalPreviewContainer" style="
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+      height: 100%;
+    "></div>
+    
+  </div>
+</div>
+
 
 
 <script>
+
+let zoomLevel = 1;
+let rotation = 0;
+let currentViewer = null;
+let currentType = null;
+
 const user_role = "<?php echo $_SESSION['user_role']; ?>"; // Get user role from PHP
 
 let documentCategories = [
@@ -913,26 +934,26 @@ document.querySelector('.close-fixed').addEventListener('click', function () {
    
 
 // Function to open the modal with the enlarged content
-function openModal(contentUrl, type) {
-    const modal = document.getElementById('previewModal');
-    const modalPreviewContainer = document.getElementById('modalPreviewContainer');
-    modal.style.display = 'flex';
+// function openModal(contentUrl, type) {
+//     const modal = document.getElementById('previewModal');
+//     const modalPreviewContainer = document.getElementById('modalPreviewContainer');
+//     modal.style.display = 'flex';
 
-    // Clear any existing content in the modal
-    modalPreviewContainer.innerHTML = '';
+//     // Clear any existing content in the modal
+//     modalPreviewContainer.innerHTML = '';
 
-    if (type === 'image') {
-        const img = document.createElement('img');
-        img.src = contentUrl;
-        modalPreviewContainer.appendChild(img);
-    } else if (type === 'pdf') {
-        const pdfViewer = document.createElement('iframe');
-        pdfViewer.src = contentUrl;
-        pdfViewer.style.width = '100%';
-        pdfViewer.style.height = '500px'; // Adjust height as needed
-        modalPreviewContainer.appendChild(pdfViewer);
-    }
-}
+//     if (type === 'image') {
+//         const img = document.createElement('img');
+//         img.src = contentUrl;
+//         modalPreviewContainer.appendChild(img);
+//     } else if (type === 'pdf') {
+//         const pdfViewer = document.createElement('iframe');
+//         pdfViewer.src = contentUrl;
+//         pdfViewer.style.width = '100%';
+//         pdfViewer.style.height = '500px'; // Adjust height as needed
+//         modalPreviewContainer.appendChild(pdfViewer);
+//     }
+// }
 
 // Close the modal when the close button is clicked
 document.getElementById('closeModal').onclick = function() {
@@ -963,6 +984,91 @@ function syncHiddenField(selectElement) {
         submitBtn.disabled = true;
     }
 }
+
+// modal zoom/rotate 
+
+
+
+function openModal(contentUrl, type) {
+    const modal = document.getElementById('previewModal');
+    const modalPreviewContainer = document.getElementById('modalPreviewContainer');
+    modal.style.display = 'flex';
+
+    // Reset states
+    zoomLevel = 1;
+    rotation = 0;
+    currentType = type;
+
+    // Clear existing content
+    modalPreviewContainer.innerHTML = '';
+
+    if (type === 'image') {
+        const img = document.createElement('img');
+        img.src = contentUrl;
+        img.style.maxWidth = '90vw';
+        img.style.maxHeight = '80vh';
+        img.style.transition = 'transform 0.3s ease';
+        img.style.transformOrigin = 'center';
+        img.style.display = 'block';
+        currentViewer = img;
+        modalPreviewContainer.appendChild(img);
+    } else if (type === 'pdf') {
+        const iframe = document.createElement('iframe');
+        iframe.src = contentUrl;
+        iframe.style.transition = 'transform 0.3s ease';
+        iframe.style.transformOrigin = 'center';
+        iframe.style.border = 'none';
+        currentViewer = iframe;
+        modalPreviewContainer.appendChild(iframe);
+    }
+
+    updateTransform();
+}
+
+function updateTransform() {
+    if (!currentViewer) return;
+
+    // For images: no size changes, only scale + rotate
+    if (currentType === 'image') {
+        currentViewer.style.transform = `scale(${zoomLevel}) rotate(${rotation}deg)`;
+    }
+    // For PDFs (iframe): adjust size
+    else if (currentType === 'pdf') {
+        const baseWidth = 800;
+        const baseHeight = 600;
+        const isRotated = rotation % 180 !== 0;
+
+        const width = isRotated ? baseHeight : baseWidth;
+        const height = isRotated ? baseWidth : baseHeight;
+
+        currentViewer.style.width = `${width * zoomLevel}px`;
+        currentViewer.style.height = `${height * zoomLevel}px`;
+        currentViewer.style.transform = `rotate(${rotation}deg)`;
+    }
+}
+
+
+function zoomIn() {
+    zoomLevel += 0.1;
+    updateTransform();
+}
+
+function zoomOut() {
+    zoomLevel = Math.max(0.1, zoomLevel - 0.1);
+    updateTransform();
+}
+
+function rotate() {
+    rotation = (rotation + 90) % 360;
+    updateTransform();
+}
+
+function closeModal() {
+    document.getElementById('previewModal').style.display = 'none';
+    document.getElementById('modalPreviewContainer').innerHTML = '';
+    currentViewer = null;
+}
+
 </script>
 <style>
     .disabled-div {

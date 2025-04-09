@@ -346,6 +346,48 @@ echo "<script>const proposalDocuments = " . json_encode($proposal_documents) . "
     </div>
 </div>
 
+<div class="modal fade" id="fileModal" tabindex="-1" aria-labelledby="fileModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-xl">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">File Preview</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body">
+
+        <!-- Toolbar -->
+        <div class="d-flex justify-content-end mb-3">
+          <button class="btn btn-sm btn-outline-secondary me-2" onclick="zoomIn()">🔍+</button>
+          <button class="btn btn-sm btn-outline-secondary me-2" onclick="zoomOut()">🔍−</button>
+          <button class="btn btn-sm btn-outline-secondary" onclick="rotate()">🔄</button>
+        </div>
+
+        <!-- Centered Viewer with auto-resizing -->
+        <div id="viewerWrapper" style="
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          background: #f8f9fa;
+          border: 1px solid #ddd;
+          border-radius: 0.5rem;
+          padding: 10px;
+          overflow: hidden;  /* No scrollbars */
+        ">
+          <iframe id="fileViewer" src="" style="
+            transform-origin: center;
+            transition: all 0.3s ease;
+            border: none;
+          "></iframe>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
 <script>
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -363,9 +405,12 @@ document.addEventListener("DOMContentLoaded", function () {
             <td>${doc.category}</td>
             <td>${doc.document_type}</td>
             <td>
-                <a href="${doc.file_path}" target="_blank" class="btn btn-sm btn-primary">
+                <!-- <a href="https://asquareai.com/${doc.file_path}" target="_blank" class="btn btn-sm btn-primary">
+                     <i class="fas fa-eye"></i> View
+                 </a>-->
+                <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#fileModal" data-filepath="https://dugar.asquareai.com/${doc.file_path}">
                     <i class="fas fa-eye"></i> View
-                </a>
+                </button>
             </td>
         `;
         documentTableBody.appendChild(row);
@@ -382,6 +427,65 @@ function toggleReasonField() {
         reasonSection.classList.add("d-none");
     }
 }
+
+// Open document modal
+
+
+let zoomLevel = 1;
+let rotation = 0;
+const baseWidth = 800;   // Set base size for iframe
+const baseHeight = 600;
+
+function zoomIn() {
+    zoomLevel += 0.1;
+    updateViewerTransform();
+}
+
+function zoomOut() {
+    zoomLevel = Math.max(0.1, zoomLevel - 0.1);
+    updateViewerTransform();
+}
+
+function rotate() {
+    rotation = (rotation + 90) % 360;
+    updateViewerTransform();
+}
+
+function updateViewerTransform() {
+    const viewer = document.getElementById('fileViewer');
+
+    // Adjust width/height based on zoom and rotation
+    const isRotated = rotation % 180 !== 0;
+    const width = isRotated ? baseHeight : baseWidth;
+    const height = isRotated ? baseWidth : baseHeight;
+
+    viewer.style.width = `${width * zoomLevel}px`;
+    viewer.style.height = `${height * zoomLevel}px`;
+    viewer.style.transform = `rotate(${rotation}deg)`;
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    const modal = document.getElementById('fileModal');
+
+    modal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        const filePath = button.getAttribute('data-filepath');
+        const viewer = document.getElementById('fileViewer');
+
+        viewer.src = filePath;
+
+        // Reset zoom and rotation
+        zoomLevel = 1;
+        rotation = 0;
+        updateViewerTransform();
+    });
+
+    modal.addEventListener('hidden.bs.modal', function () {
+        document.getElementById('fileViewer').src = '';
+    });
+});
+
+
 </script>
 </body>
 </html>
